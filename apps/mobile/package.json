@@ -1,29 +1,32 @@
 {
-  "name": "@astig/mobile-spike",
-  "version": "0.0.1",
-  "main": "index.ts",
-  "dependencies": {
-    "@reactvision/react-viro": "3.0.2",
-    "expo": "~57.0.26",
-    "expo-camera": "~57.0.6",
-    "expo-dev-client": "~57.0.19",
-    "expo-location": "~57.0.20",
-    "expo-sensors": "~57.0.3",
-    "expo-status-bar": "~57.0.1",
-    "react": "19.2.3",
-    "react-native": "0.86.3"
-  },
-  "devDependencies": {
-    "@types/node": "24.19.1",
-    "@types/react": "~19.2.2",
-    "typescript": "~6.0.3"
-  },
-  "scripts": {
-    "start": "expo start --dev-client",
-    "android": "expo run:android",
-    "typecheck": "tsc --noEmit",
-    "test": "node --test src/distance.test.ts src/capture.test.ts src/motion.test.ts",
-    "doctor": "expo-doctor"
-  },
-  "private": true
+    "name":  "@astig/mobile",
+    "version":  "0.0.1",
+    "main":  "index.ts",
+    "dependencies":  {
+                         "@reactvision/react-viro":  "3.0.2",
+                         "expo":  "~57.0.26",
+                         "expo-camera":  "~57.0.6",
+                         "expo-dev-client":  "~57.0.19",
+                         "expo-file-system":  "~57.0.7",
+                         "expo-keep-awake":  "~57.0.2",
+                         "expo-location":  "~57.0.20",
+                         "expo-sensors":  "~57.0.3",
+                         "expo-status-bar":  "~57.0.1",
+                         "react":  "19.2.3",
+                         "react-native":  "0.86.3",
+                         "react-native-safe-area-context":  "~5.7.0"
+                     },
+    "devDependencies":  {
+                            "@types/node":  "24.19.1",
+                            "@types/react":  "~19.2.2",
+                            "typescript":  "~6.0.3"
+                        },
+    "scripts":  {
+                    "start":  "expo start --dev-client",
+                    "android":  "expo run:android",
+                    "typecheck":  "tsc --noEmit",
+                    "test":  "node --test src/distance.test.ts src/capture.test.ts src/motion.test.ts src/session.test.ts src/queue.test.ts src/trigger.test.ts src/permissions.test.ts",
+                    "doctor":  "expo-doctor"
+                },
+    "private":  true
 }
