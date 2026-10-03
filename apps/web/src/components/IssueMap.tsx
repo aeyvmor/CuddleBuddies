@@ -30,41 +30,46 @@ export function IssueMap({ items, selectedId, onSelect }: Props) {
     <section className={styles.map} aria-labelledby="issue-map-title">
       <div className={styles.head}>
         <h2 id="issue-map-title" className={styles.title}>
-          Issue map (schematic)
+          Issue map
         </h2>
-        <p className={styles.note}>Not a basemap. Marker positions are approximate.</p>
+        <span className={styles.tag}>Schematic · not a basemap</span>
+        <p className={styles.note}>Marker positions are approximate.</p>
       </div>
-      <div className={styles.canvas}>
-        {items.length === 0 && <p className={styles.empty}>No issues match the current filters.</p>}
-        {items.map((item, idx) => {
-          const p = pts[idx]!;
-          const sev = item.severity ?? "UNKNOWN";
-          return (
-            <button
-              key={item.issue.id}
-              type="button"
-              className={styles.marker}
-              data-severity={sev}
-              aria-pressed={item.issue.id === selectedId}
-              aria-label={`Map marker: ${label(item.issue.issueType)}, ${item.severity ? `${label(item.severity)} severity` : "severity unknown"}, ${item.issue.areaName ?? "area unknown"}`}
-              style={{ left: `${p.x}%`, top: `${p.y}%` }}
-              onClick={() => onSelect(item.issue.id)}
-            >
-              <span aria-hidden="true">{LETTER[sev]}</span>
-            </button>
-          );
-        })}
+      <div className={styles.stage}>
+        <div className={styles.canvas}>
+          {items.length === 0 && <p className={styles.empty}>No issues match the current filters.</p>}
+          <div className={styles.plot}>
+          {items.map((item, idx) => {
+            const p = pts[idx]!;
+            const sev = item.severity ?? "UNKNOWN";
+            return (
+              <button
+                key={item.issue.id}
+                type="button"
+                className={styles.marker}
+                data-severity={sev}
+                aria-pressed={item.issue.id === selectedId}
+                aria-label={`Map marker: ${label(item.issue.issueType)}, ${item.severity ? `${label(item.severity)} severity` : "severity unknown"}, ${item.issue.areaName ?? "area unknown"}`}
+                style={{ left: `${p.x}%`, top: `${p.y}%` }}
+                onClick={() => onSelect(item.issue.id)}
+              >
+                <span aria-hidden="true">{LETTER[sev]}</span>
+              </button>
+            );
+          })}
+          </div>
+        </div>
+        <ul className={styles.legend} aria-label="Map legend">
+          {LEGEND.map((s) => (
+            <li key={s}>
+              <span className={styles.legendSwatch} data-severity={s} aria-hidden="true">
+                {LETTER[s]}
+              </span>
+              {s === "UNKNOWN" ? "Severity unknown" : label(s)}
+            </li>
+          ))}
+        </ul>
       </div>
-      <ul className={styles.legend} aria-label="Map legend">
-        {LEGEND.map((s) => (
-          <li key={s}>
-            <span className={styles.legendSwatch} data-severity={s} aria-hidden="true">
-              {LETTER[s]}
-            </span>
-            {s === "UNKNOWN" ? "Severity unknown" : label(s)}
-          </li>
-        ))}
-      </ul>
     </section>
   );
 }

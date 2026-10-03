@@ -8,9 +8,8 @@
 .head {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-2);
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
 }
 
 .title {
@@ -18,22 +17,58 @@
   margin: 0;
 }
 
-.note,
+.tag {
+  composes: pill from "../styles/primitives.module.css";
+  color: var(--color-accent-soft-text);
+  background: var(--color-surface-mint);
+}
+
+.note {
+  composes: muted from "../styles/primitives.module.css";
+  margin: 0 0 0 auto;
+}
+
 .empty {
   composes: muted from "../styles/primitives.module.css";
   margin: 0;
+  padding: var(--space-5);
+  text-align: center;
+}
+
+.stage {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
 }
 
 /* Schematic canvas: a soft grid suggests a map without implying a real basemap. */
 .canvas {
   position: relative;
+  flex: 1;
   min-height: var(--size-map-min-height);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background-color: var(--color-surface-mint);
   background-image:
+    radial-gradient(circle at 50% 45%, transparent 35%, var(--color-surface-muted) 100%),
     linear-gradient(var(--color-surface) 2px, transparent 2px),
-    linear-gradient(90deg, var(--color-surface) 2px, transparent 2px);
-  background-size: 3rem 3rem;
+    linear-gradient(90deg, var(--color-surface) 2px, transparent 2px),
+    linear-gradient(var(--color-surface) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-surface) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    6rem 6rem,
+    6rem 6rem,
+    1.5rem 1.5rem,
+    1.5rem 1.5rem;
+}
+
+/* Marker area stops above the floating legend so no marker sits underneath it. */
+.plot {
+  position: absolute;
+  inset: 0 0 3.5rem;
 }
 
 .marker {
@@ -52,11 +87,32 @@
   color: var(--color-text-on-accent);
   font-size: var(--font-size-label-sm);
   font-weight: var(--font-weight-heavy);
+  transition: transform 120ms ease;
+}
+
+/* Decorative halo behind each marker; purely visual, not a density heatmap. */
+.marker::before {
+  content: "";
+  position: absolute;
+  inset: -1.25rem;
+  z-index: -1;
+  border-radius: var(--radius-pill);
+  background: radial-gradient(circle, currentColor 0%, transparent 70%);
+  color: var(--color-sev-low-dot);
+  opacity: 0.22;
+  pointer-events: none;
 }
 
 .marker[data-severity="MODERATE"] { background: var(--color-sev-moderate-fg); }
+.marker[data-severity="MODERATE"]::before { color: var(--color-sev-moderate-dot); }
 .marker[data-severity="HIGH"] { background: var(--color-sev-high-fg); }
+.marker[data-severity="HIGH"]::before { color: var(--color-sev-high-dot); }
 .marker[data-severity="CRITICAL"] { background: var(--color-sev-critical-fg); }
+.marker[data-severity="CRITICAL"]::before { color: var(--color-sev-critical-dot); opacity: 0.3; }
+
+.marker:hover {
+  transform: translate(-50%, -50%) scale(1.12);
+}
 
 .marker[aria-pressed="true"] {
   width: calc(var(--size-marker) + 0.5rem);
@@ -65,21 +121,30 @@
   z-index: 1;
 }
 
+/* Floating legend over the canvas, as in the command-center mockup. */
 .legend {
+  position: absolute;
+  left: var(--space-3);
+  bottom: var(--space-3);
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
+  gap: var(--space-2) var(--space-4);
+  max-width: calc(100% - 2 * var(--space-3));
   margin: 0;
-  padding: 0;
+  padding: var(--space-2) var(--space-4);
   list-style: none;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-2);
   font-size: var(--font-size-body-sm);
-  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
 }
 
 .legend li {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .legendSwatch {
@@ -91,4 +156,18 @@
   border-width: 0;
   box-shadow: none;
   cursor: default;
+}
+
+.legendSwatch::before {
+  content: none;
+}
+
+.legendSwatch:hover {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marker {
+    transition: none;
+  }
 }

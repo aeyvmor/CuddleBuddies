@@ -21,8 +21,14 @@ Do not depend on Google Street View for the hackathon MVP. Prefer team-captured 
   - issue detail: status, location uncertainty, observed range, evidence history, confidence, review flag, sampling method, failed processing, and image availability;
   - score breakdown, where `UNKNOWN` inputs are shown as unknown and never as zero;
   - officer-only work-order create and `OPEN → IN_PROGRESS → RESOLVED`.
-- **Styling:** Civic Pulse direction (`visual/civic_pulse_design_system/DESIGN.md`) through tokens in `src/styles/tokens.css`. `src/styles/primitives.module.css` holds the shared card, pill, button and field styles. There is one CSS Module per component, and no UI component library.
-  - **Fonts:** Plus Jakarta Sans is used only if installed locally. Otherwise the system UI font is the fallback, because loading the font would need a third-party request or a new dependency.
+- **Layout:** follows the command-center and issue-detail mockups in `visual/`.
+  - Shell: left sidebar (brand, in-page section links, data-source note) and a sticky top bar (page title, synthetic-data badge, demo role).
+  - Command center: summary tiles, filters, then the schematic map beside the issue queue (sorted by priority score, highest first).
+  - Issue review: opens below the map and queue and scrolls into view. Evidence is on the left; priority score with gauge, location and history, and the work order are on the right.
+  - Summary tiles are counts of the issue list the page already holds (open issues by highest AI severity estimate, open, resolved). They are not the analytics summary.
+  - Left out on purpose because they are outside the MVP or not backed by data: auto-dispatch / "Deploy crew", real-time sensor and system-status claims, heatmap layer, weather and hazard alerts, recommended dispatch action (gap G6), export and audit-log actions, and the executive analytics page.
+- **Styling:** Civic Pulse direction (`visual/civic_pulse_design_system/DESIGN.md`) through tokens in `src/styles/tokens.css`. `src/styles/primitives.module.css` holds the shared card, pill, button and field styles. There is one CSS Module per component, and no UI component library. Icons are a small inline SVG set (`src/components/Icon.tsx`), all decorative.
+  - **Fonts:** Plus Jakarta Sans is self-hosted through `@fontsource-variable/plus-jakarta-sans` (OFL-1.1, imported in `src/main.tsx`), so there is no third-party font request. The system UI font is the fallback.
 - **Demo role selector:** a placeholder until real auth is chosen. Its roles are the contract's `OPERATOR` and `OFFICER`, and it defaults to `OPERATOR`.
 
 Commands (from the repo root): `npm install`, `npm run dev -w @astig/web`, `npm test -w @astig/web`, `npm run build -w @astig/web`.
@@ -54,12 +60,13 @@ The map is a schematic placeholder, not a basemap, because the map provider is u
 
 - **Tab order:**
   1. "Skip to issue detail" link (only once a detail is shown; hidden until focused);
-  2. demo role;
-  3. the four filters;
-  4. map markers;
-  5. issue list;
-  6. issue detail: the work-order form fields, then the action button.
-- **Selecting an issue:** markers and list rows are buttons with `aria-pressed`, activated with Enter or Space. Selecting does not move focus. The new detail is announced in a polite status region ("Showing issue detail: …"), and the skip link jumps to it. Markers and rows are two tab stops per issue; the list is the textual equivalent of the schematic map.
+  2. sidebar section links ("Command center", "Issue queue", and "Issue review" once an issue is shown);
+  3. demo role;
+  4. the four filters;
+  5. map markers;
+  6. issue queue;
+  7. issue detail: the "Issue queue" back link, the work-order form fields, then the action button.
+- **Selecting an issue:** the detail renders below the map and queue and is scrolled into view (smooth scrolling is off under `prefers-reduced-motion`). Markers and list rows are buttons with `aria-pressed`, activated with Enter or Space. Selecting does not move focus. The new detail is announced in a polite status region ("Showing issue detail: …"), and the skip link jumps to it. Markers and rows are two tab stops per issue; the list is the textual equivalent of the schematic map.
 - **Work-order actions:**
   - **Create:** focus moves to the "Work order" heading, because the form disappears, and "Work order created. Status: Open." is announced.
   - **Mark In progress:** focus stays on the same button, which becomes "Mark Resolved", and the change is announced.
@@ -76,4 +83,4 @@ The map is a schematic placeholder, not a basemap, because the map provider is u
   - All text is 4.5:1 or better, and non-text indicators are 3:1 or better.
   - Departures from DESIGN.md: brand green `#00B14F` is 2.8:1 on white, so it is not used for text or filled buttons, which use the design system's `primary` `#006E2E` (6.4:1). Muted text is `#475569`, not `#64748B` (4.3:1 on tinted surfaces). Control borders are `#7B8794` (3.3:1 or better).
 - **Tests:** `src/a11y.test.tsx` covers the keyboard path (Tab/Enter only, from list selection through create to `RESOLVED`, with focus and announcements asserted), marker activation by keyboard, the skip link, the alert for refused requests, and the text equivalents for colour.
-- **Not covered:** no screen-reader testing (NVDA/JAWS/TalkBack) and no automated axe scan, because that would be a new dependency. The score table's rationale column is cramped below about 420px.
+- **Not covered:** no screen-reader testing (NVDA/JAWS/TalkBack) and no automated axe scan, because that would be a new dependency.

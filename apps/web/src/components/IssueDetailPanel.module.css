@@ -11,6 +11,29 @@
   gap: var(--space-2);
 }
 
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-muted);
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.back:hover {
+  text-decoration: underline;
+}
+
 .titleRow {
   display: flex;
   flex-wrap: wrap;
@@ -21,13 +44,16 @@
 .title {
   margin: 0;
   font-size: var(--font-size-headline-lg);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-heavy);
+  letter-spacing: -0.02em;
 }
 
 .pills {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
+  margin: 0;
 }
 
 .sev {
@@ -38,21 +64,82 @@
   composes: statusPill from "../styles/primitives.module.css";
 }
 
-.facts {
+.advisory {
+  composes: muted from "../styles/primitives.module.css";
+}
+
+/* Evidence on the left, score / location / work order on the right (issue-detail mockup). */
+.grid {
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: var(--space-2) var(--space-4);
-  margin: var(--space-2) 0 0;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.location {
+  composes: card from "../styles/primitives.module.css";
+}
+
+.sectionTitle {
+  composes: sectionTitle from "../styles/primitives.module.css";
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sectionIcon {
+  color: var(--color-accent);
+}
+
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.fact {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr);
+  gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   background: var(--color-surface-muted);
-  font-size: var(--font-size-body-md);
 }
 
-.facts dt {
+.fact dt {
   color: var(--color-text-muted);
 }
 
-.facts dd {
+.fact dd {
   margin: 0;
+  font-weight: var(--font-weight-semibold);
+}
+
+.coords {
+  font-family: var(--font-mono);
+}
+
+.factStrong {
+  color: var(--color-accent);
+}
+
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .fact {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
 }

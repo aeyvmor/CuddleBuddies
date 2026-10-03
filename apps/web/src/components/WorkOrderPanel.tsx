@@ -3,6 +3,7 @@ import { WorkOrderStatus as WorkOrderStatusEnum } from "@astig/contracts";
 import { ApiError, type IssueStatus, type Role, type WorkOrder, type WorkOrderStatus } from "../api/types";
 import { nextWorkOrderStatus } from "../domain/workOrder";
 import { formatUtc, label } from "../domain/labels";
+import { Icon } from "./Icon";
 import styles from "./WorkOrderPanel.module.css";
 
 export interface CreateInput {
@@ -91,6 +92,7 @@ export function WorkOrderPanel({ role, issueStatus, riskAssessmentId, workOrders
   return (
     <section aria-labelledby="work-order-heading" className={styles.section}>
       <h3 id="work-order-heading" ref={headingRef} tabIndex={-1} className={styles.heading}>
+        <Icon name="clipboard" className={styles.headingIcon} />
         Work order
       </h3>
       <p role="status" className="visually-hidden">

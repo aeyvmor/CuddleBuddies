@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ApiClient } from "./api/client";
 import {
   ApiError,
@@ -9,6 +9,8 @@ import {
   type WorkOrderStatus,
 } from "./api/types";
 import { DemoBadge } from "./components/DemoBadge";
+import { Icon } from "./components/Icon";
+import { SummaryTiles } from "./components/SummaryTiles";
 import { label } from "./domain/labels";
 import { FilterBar } from "./components/FilterBar";
 import { IssueDetailPanel } from "./components/IssueDetailPanel";
@@ -30,6 +32,7 @@ function describe(e: unknown): string {
 export function App({ api, role, onRoleChange }: Props) {
   const [filters, setFilters] = useState<IssueListFilters>({});
   const [items, setItems] = useState<IssueListItem[]>([]);
+  const [allItems, setAllItems] = useState<IssueListItem[]>([]);
   const [areas, setAreas] = useState<string[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<IssueDetailResponse | null>(null);
@@ -46,6 +49,7 @@ export function App({ api, role, onRoleChange }: Props) {
       .listIssues({})
       .then((all) => {
         if (cancelled) return;
+        setAllItems(all);
         setAreas([...new Set(all.map((i) => i.issue.areaName).filter((a): a is string => a !== null))].sort());
       })
       .catch((e) => !cancelled && setLoadError(describe(e)));
@@ -97,6 +101,15 @@ export function App({ api, role, onRoleChange }: Props) {
   const shownDetail = detail && visible && detail.issue.id === selectedId ? detail : null;
   const anySynthetic = items.some((i) => i.issue.isSynthetic);
 
+  // The detail renders below the map and queue, so bring it into view when a new issue opens.
+  // Focus is not moved; the status region announces it and the skip link jumps to it.
+  const detailRef = useRef<HTMLDivElement>(null);
+  const shownId = shownDetail?.issue.id ?? null;
+  useEffect(() => {
+    const el = detailRef.current;
+    if (shownId && el && typeof el.scrollIntoView === "function") el.scrollIntoView({ block: "start" });
+  }, [shownId]);
+
   // Announce which issue the detail panel now shows (it renders away from the control that was pressed).
   const shownTitle = shownDetail ? label(shownDetail.issue.issueType) : null;
   const [announcement, setAnnouncement] = useState("");
@@ -130,32 +143,82 @@ export function App({ api, role, onRoleChange }: Props) {
       <p role="status" className="visually-hidden">
         {announcement}
       </p>
-      <header className={styles.header}>
-        <h1 className={styles.brand}>
-          ASTIG <span className={styles.brandSub}>Operations</span>
-        </h1>
-        {anySynthetic && <DemoBadge />}
-        <label className={styles.role}>
-          <span>Demo role (placeholder; real auth not yet decided)</span>
-          <select className={styles.roleSelect} value={role} onChange={(e) => onRoleChange(e.target.value as Role)}>
-            <option value="OPERATOR">Operator</option>
-            <option value="OFFICER">Officer</option>
-          </select>
-        </label>
-      </header>
-      <div className={styles.content}>
-        <FilterBar filters={filters} areas={areas} onChange={setFilters} />
-        {loadError && (
-          <p role="alert" className={styles.error}>
-            {loadError}
+
+      <aside className={styles.sidebar}>
+        <p className={styles.brand}>
+          ASTIG <span className={styles.brandTag}>OPS</span>
+        </p>
+        <nav aria-label="Sections" className={styles.nav}>
+          <p className={styles.navTitle}>Municipal operations</p>
+          <a className={styles.navLink} href="#overview" aria-current="page">
+            <Icon name="dashboard" className={styles.navIcon} />
+            Command center
+          </a>
+          <a className={styles.navLink} href="#issue-queue">
+            <Icon name="queue" className={styles.navIcon} />
+            Issue queue
+          </a>
+          {shownDetail ? (
+            <a className={styles.navLink} href="#issue-detail">
+              <Icon name="detail" className={styles.navIcon} />
+              Issue review
+            </a>
+          ) : (
+            <span className={styles.navLink} data-disabled="true">
+              <Icon name="detail" className={styles.navIcon} />
+              Issue review
+              <span className={styles.navHint}>Select an issue</span>
+            </span>
+          )}
+        </nav>
+        <div className={styles.source}>
+          <Icon name="database" className={styles.sourceIcon} />
+          <p className={styles.sourceText}>
+            <span className={styles.sourceTitle}>Data source</span>
+            {anySynthetic ? "Synthetic demo records" : "Operations API"}
           </p>
-        )}
-        <main className={styles.main}>
-          <div className={styles.left}>
-            <IssueMap items={items} selectedId={selectedId} onSelect={setSelectedId} />
-            <IssueList items={items} selectedId={selectedId} onSelect={setSelectedId} />
+        </div>
+      </aside>
+
+      <div className={styles.page}>
+        <header className={styles.topbar}>
+          <div className={styles.heading}>
+            <p className={styles.eyebrow}>Drainage and road issues</p>
+            <h1 className={styles.title}>Command center</h1>
           </div>
-          <div className={styles.right}>
+          {anySynthetic && <DemoBadge />}
+          <label className={styles.role}>
+            <span className={styles.avatar}>
+              <Icon name="user" />
+            </span>
+            <span className={styles.roleText}>
+              <span className={styles.roleLabel}>Demo role</span>
+              <span className={styles.roleNote}>Placeholder; real sign-in not yet decided</span>
+            </span>
+            <select className={styles.roleSelect} value={role} onChange={(e) => onRoleChange(e.target.value as Role)}>
+              <option value="OPERATOR">Operator</option>
+              <option value="OFFICER">Officer</option>
+            </select>
+          </label>
+        </header>
+
+        <main className={styles.content}>
+          <div id="overview" className={styles.anchor}>
+            <SummaryTiles items={allItems} />
+          </div>
+          <FilterBar filters={filters} areas={areas} onChange={setFilters} />
+          {loadError && (
+            <p role="alert" className={styles.error}>
+              {loadError}
+            </p>
+          )}
+          <div className={styles.board}>
+            <IssueMap items={items} selectedId={selectedId} onSelect={setSelectedId} />
+            <div id="issue-queue" className={styles.anchor}>
+              <IssueList items={items} selectedId={selectedId} onSelect={setSelectedId} />
+            </div>
+          </div>
+          <div ref={detailRef} className={styles.anchor}>
             {shownDetail ? (
               <IssueDetailPanel
                 detail={shownDetail}
@@ -168,7 +231,13 @@ export function App({ api, role, onRoleChange }: Props) {
                 {detailError}
               </p>
             ) : (
-              <p className={styles.placeholder}>Select an issue to review its evidence.</p>
+              <div className={styles.placeholder}>
+                <span className={styles.placeholderIcon}>
+                  <Icon name="detail" />
+                </span>
+                <p className={styles.placeholderTitle}>No issue selected</p>
+                <p className={styles.placeholderText}>Select an issue to review its evidence.</p>
+              </div>
             )}
           </div>
         </main>

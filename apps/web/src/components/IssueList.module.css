@@ -1,4 +1,7 @@
 .section {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
@@ -6,9 +9,56 @@
   overflow: hidden;
 }
 
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-4) var(--space-5) var(--space-3);
+}
+
 .heading {
   composes: sectionTitle from "../styles/primitives.module.css";
-  padding: var(--space-4) var(--space-5) var(--space-2);
+  margin: 0;
+}
+
+.count {
+  composes: pill from "../styles/primitives.module.css";
+  color: var(--color-text-muted);
+  background: var(--color-surface-muted);
+}
+
+.sort {
+  margin-left: auto;
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-accent);
+}
+
+/* Column captions (decorative; each row is a self-describing button). */
+.columns,
+.item {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr) auto;
+  gap: var(--space-2) var(--space-4);
+  align-items: center;
+  padding: var(--space-3) var(--space-5);
+}
+
+.columns {
+  composes: eyebrow from "../styles/primitives.module.css";
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+  background: var(--color-surface-muted);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.empty {
+  composes: muted from "../styles/primitives.module.css";
+  margin: 0;
+  padding: var(--space-5);
+  text-align: center;
 }
 
 .list {
@@ -22,18 +72,14 @@
 }
 
 .item {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--space-1) var(--space-4);
-  align-items: start;
   width: 100%;
-  padding: var(--space-4) var(--space-5);
   text-align: left;
   color: var(--color-text);
   background: var(--color-surface);
   border: 0;
-  border-left: 4px solid transparent;
+  box-shadow: inset 4px 0 0 transparent;
   cursor: pointer;
+  transition: background-color 120ms ease;
 }
 
 .item:hover {
@@ -42,27 +88,68 @@
 
 .item[aria-pressed="true"] {
   background: var(--color-surface-mint);
-  border-left-color: var(--color-accent);
+  box-shadow: inset 4px 0 0 var(--color-accent);
 }
 
+/* Priority chip. The dot colour repeats the severity pill in the same row; the pill carries the text. */
 .score {
   composes: pill from "../styles/primitives.module.css";
-  grid-row: span 3;
-  min-width: 3.5rem;
   justify-content: center;
+  justify-self: start;
+  min-width: 3.5rem;
   font-size: var(--font-size-body-md);
-  color: var(--color-text);
-  background: var(--color-surface-muted);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-sev-low-fg);
+  background: var(--color-sev-low-bg);
+}
+
+.score::before {
+  content: "";
+  width: var(--size-dot);
+  height: var(--size-dot);
+  border-radius: var(--radius-pill);
+  background: var(--color-sev-low-dot);
+}
+
+.score[data-severity="CRITICAL"] { color: var(--color-sev-critical-fg); background: var(--color-sev-critical-bg); }
+.score[data-severity="CRITICAL"]::before { background: var(--color-sev-critical-dot); }
+.score[data-severity="HIGH"] { color: var(--color-sev-high-fg); background: var(--color-sev-high-bg); }
+.score[data-severity="HIGH"]::before { background: var(--color-sev-high-dot); }
+.score[data-severity="MODERATE"] { color: var(--color-sev-moderate-fg); background: var(--color-sev-moderate-bg); }
+.score[data-severity="MODERATE"]::before { background: var(--color-sev-moderate-dot); }
+
+.body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.columns span:last-child {
+  justify-self: end;
+}
+
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
 }
 
 .title {
   font-size: var(--font-size-headline-sm);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-bold);
+}
+
+.meta {
+  composes: muted from "../styles/primitives.module.css";
 }
 
 .pills {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-end;
   gap: var(--space-2);
 }
 
@@ -74,6 +161,8 @@
   composes: statusPill from "../styles/primitives.module.css";
 }
 
-.meta {
-  composes: muted from "../styles/primitives.module.css";
+@media (prefers-reduced-motion: reduce) {
+  .item {
+    transition: none;
+  }
 }
