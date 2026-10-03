@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"surface-container-lowest":"#ffffff","tertiary-fixed":"#caead6","inverse-primary":"#52e078","on-error":"#ffffff","on-primary-container":"#003a15","on-secondary-container":"#007238","surface-container":"#eceeef","on-error-container":"#93000a","tertiary-container":"#82a08e","on-primary-fixed-variant":"#005321","on-tertiary-fixed-variant":"#314d3e","surface":"#f8fafb","outline":"#6d7b6c","surface-bright":"#f8fafb","surface-dim":"#d8dadb","surface-container-low":"#f2f4f5","on-surface":"#191c1d","primary-fixed":"#71fe91","background":"#f8fafb","on-secondary":"#ffffff","surface-variant":"#e1e3e4","tertiary":"#486554","on-primary-fixed":"#002109","secondary-fixed":"#8cf9a9","surface-tint":"#006e2e","on-primary":"#ffffff","secondary":"#006d36","inverse-on-surface":"#eff1f2","secondary-fixed-dim":"#70dc8f","on-secondary-fixed":"#00210c","primary-container":"#00b14f","error-container":"#ffdad6","on-secondary-fixed-variant":"#005227","on-tertiary":"#ffffff","error":"#ba1a1a","inverse-surface":"#2e3132","outline-variant":"#bccbb9","surface-container-highest":"#e1e3e4","primary-fixed-dim":"#52e078","tertiary-fixed-dim":"#afceba","on-surface-variant":"#3d4a3d","on-tertiary-fixed":"#042014","secondary-container":"#89f6a6","surface-container-high":"#e6e8e9","primary":"#006e2e","on-tertiary-container":"#1c3729","on-background":"#191c1d"},borderRadius:{DEFAULT:"0.25rem",lg:"0.5rem",xl:"0.75rem",full:"9999px"},spacing:{"space-xl":"2rem","space-sm":"0.5rem",margin:"1rem","space-xs":"0.25rem","space-md":"1rem",gutter:"1rem","space-lg":"1.5rem"},fontFamily:{"headline-lg":["Plus Jakarta Sans"],"label-lg":["Plus Jakarta Sans"],"headline-xl":["Plus Jakarta Sans"],"label-sm":["Plus Jakarta Sans"],"headline-xl-mobile":["Plus Jakarta Sans"],"body-md":["Plus Jakarta Sans"],"body-sm":["Plus Jakarta Sans"],"body-lg":["Plus Jakarta Sans"],"headline-md":["Plus Jakarta Sans"],"headline-sm":["Plus Jakarta Sans"],"label-md":["Plus Jakarta Sans"]},fontSize:{"headline-lg":["24px",{lineHeight:"32px",letterSpacing:"-0.015em",fontWeight:"700"}],"label-lg":["14px",{lineHeight:"20px",letterSpacing:"0.01em",fontWeight:"600"}],"headline-xl":["36px",{lineHeight:"44px",letterSpacing:"-0.02em",fontWeight:"800"}],"label-sm":["11px",{lineHeight:"14px",letterSpacing:"0.03em",fontWeight:"700"}],"headline-xl-mobile":["28px",{lineHeight:"36px",letterSpacing:"-0.01em",fontWeight:"800"}],"body-md":["14px",{lineHeight:"20px",fontWeight:"400"}],"body-sm":["12px",{lineHeight:"16px",fontWeight:"400"}],"body-lg":["16px",{lineHeight:"24px",fontWeight:"400"}],"headline-md":["20px",{lineHeight:"28px",letterSpacing:"-0.01em",fontWeight:"700"}],"headline-sm":["16px",{lineHeight:"24px",letterSpacing:"-0.005em",fontWeight:"600"}],"label-md":["12px",{lineHeight:"16px",letterSpacing:"0.02em",fontWeight:"600"}]}}}};</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased"><header class="fixed top-0 left-0 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl z-50 shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-16 w-full px-space-lg flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-lg"><div class="flex items-center gap-space-xs"><span class="font-headline-lg text-headline-lg text-primary-container tracking-tight">ASTIG</span><span class="font-label-sm text-label-sm uppercase tracking-wider px-space-xs py-0.5 rounded bg-surface-container text-on-surface-variant">Gov</span></div><div class="h-5 w-px bg-surface-variant hidden sm:block"></div><div class="hidden sm:flex items-center gap-space-xs bg-tertiary-fixed/40 px-3 py-1 rounded-full"><span class="w-2 h-2 rounded-full bg-primary-container"></span><span class="font-label-sm text-label-sm text-on-tertiary-container">System Operational</span></div></div><div class="flex items-center gap-space-md"><button class="p-space-sm rounded-full text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors flex items-center justify-center" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span></button><button class="p-space-sm rounded-full text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors flex items-center justify-center" type="button"><span class="material-symbols-outlined text-[20px]">help</span></button><div class="flex items-center gap-space-sm pl-space-xs"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="hidden lg:flex flex-col text-left"><span class="font-label-md text-label-md text-on-surface leading-tight">Operations Lead</span><span class="font-body-sm text-body-sm text-on-surface-variant leading-tight">District 4 HQ</span></div></div></div></div></header><aside class="fixed left-0 top-16 bottom-0 w-64 bg-surface-container-lowest shadow-[0_1px_8px_rgba(0,0,0,0.03)] z-40 hidden md:flex flex-col p-space-md justify-between"><div class="flex flex-col gap-space-xs"><div class="px-3 py-2"><span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Municipal Ops</span></div><nav class="flex flex-col gap-1" data-active-classes="bg-secondary-container text-on-secondary-container font-headline-sm"><a class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="command-center" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span>Command Center</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="issue-details" href="#"><span class="material-symbols-outlined text-[20px]">report_problem</span>Issue Details</a><a class="flex items-center gap-3 px-3 py-2.5 rounded-xl font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors" data-path="work-orders" href="#"><span class="material-symbols-outlined text-[20px]">assignment</span>Work Orders</a><a aria-current="page" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors bg-secondary-container text-on-secondary-container font-headline-sm" data-path="executive-analytics" href="#"><span class="material-symbols-outlined text-[20px]">insights</span>Executive Analytics</a></nav></div><div class="p-space-sm bg-surface-container-low rounded-xl flex items-center justify-between"><div class="flex flex-col"><span class="font-label-sm text-label-sm text-on-surface">District Central</span><span class="font-body-sm text-body-sm text-on-surface-variant">v2.4 Active</span></div><span class="material-symbols-outlined text-primary-container text-[20px]">verified</span></div></aside><div class="md:pl-64"><main class="w-full pt-16 px-space-md lg:px-space-xl py-space-lg bg-surface min-h-screen"><div class="flex flex-col w-full">
+<!-- Dynamic Dashboard Header / Time Control -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-space-md mb-space-lg">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm uppercase tracking-wider">Executive Intelligence</span>
+<span class="flex items-center gap-1 font-label-sm text-tertiary">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container animate-pulse"></span>
+          Live Sync • AWS QuickSight Engine
+        </span>
+</div>
+<h1 class="font-headline-xl text-headline-xl text-on-surface tracking-tight">Executive Analytics</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Real-time civic telematics, fleet sensing trends, and district-wide resolution efficiency.</p>
+</div>
+<!-- Quick Controls -->
+<div class="flex items-center gap-space-sm bg-surface-container-lowest p-1.5 rounded-full shadow-sm">
+<button class="px-4 py-1.5 rounded-full bg-primary-container text-on-primary font-label-md transition-all shadow-sm">Today</button>
+<button class="px-4 py-1.5 rounded-full hover:bg-surface-container font-label-md text-on-surface-variant transition-all">Past 7 Days</button>
+<button class="px-4 py-1.5 rounded-full hover:bg-surface-container font-label-md text-on-surface-variant transition-all">Month-to-Date</button>
+<div class="h-4 w-px bg-surface-variant mx-1"></div>
+<button class="p-2 rounded-full hover:bg-surface-container text-on-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">file_download</span>
+</button>
+</div>
+</div>
+<!-- SECTION 1: Amazon QuickSight Q Natural Language Interface -->
+<div class="flex flex-col gap-space-sm mb-space-xl">
+<div class="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm relative overflow-hidden transition-all duration-300 hover:shadow-md">
+<!-- Glow ambient backdrop accent -->
+<div class="absolute -top-12 -right-12 w-48 h-48 bg-primary-container/10 rounded-full blur-2xl pointer-events-none"></div>
+<div class="flex flex-col gap-space-sm relative z-10">
+<!-- Natural Language Query Bar -->
+<div class="flex items-center gap-space-sm bg-surface-container-low px-space-md py-3 rounded-xl focus-within:bg-surface-container-lowest focus-within:shadow-md transition-all">
+<div class="w-8 h-8 rounded-full bg-primary-container/15 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<input class="w-full bg-transparent text-on-surface font-headline-sm text-headline-sm outline-none placeholder:text-outline" id="quick-query-input" placeholder="Ask Amazon Quick in plain English..." type="text" value="Which barangays have the most recurring drainage issues?"/>
+<button class="px-4 py-2 rounded-full bg-primary-container hover:bg-primary text-on-primary font-label-md flex items-center gap-1.5 transition-colors shrink-0 shadow-sm">
+<span>Query</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+<!-- Prompt Pills -->
+<div class="flex flex-wrap items-center gap-2 pt-1">
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">psychology</span> Suggestions:
+          </span>
+<button class="px-3 py-1 rounded-full bg-surface-container hover:bg-tertiary-fixed text-on-surface-variant hover:text-on-tertiary-container font-label-sm text-label-sm transition-all flex items-center gap-1" onclick="setQuery('Critical issues unresolved')">
+<span>Critical issues unresolved</span>
+<span class="material-symbols-outlined text-[12px] opacity-70">north_east</span>
+</button>
+<button class="px-3 py-1 rounded-full bg-surface-container hover:bg-tertiary-fixed text-on-surface-variant hover:text-on-tertiary-container font-label-sm text-label-sm transition-all flex items-center gap-1" onclick="setQuery('Average resolution time by team')">
+<span>Average resolution time by team</span>
+<span class="material-symbols-outlined text-[12px] opacity-70">north_east</span>
+</button>
+<button class="px-3 py-1 rounded-full bg-surface-container hover:bg-tertiary-fixed text-on-surface-variant hover:text-on-tertiary-container font-label-sm text-label-sm transition-all flex items-center gap-1" onclick="setQuery('Weekly coverage % across corridors')">
+<span>Weekly coverage %</span>
+<span class="material-symbols-outlined text-[12px] opacity-70">north_east</span>
+</button>
+</div>
+<!-- Quick AI Instant Answer Card -->
+<div class="mt-2 p-space-md rounded-xl bg-tertiary-fixed/30 flex flex-col md:flex-row md:items-center justify-between gap-space-sm">
+<div class="flex items-start gap-space-sm">
+<div class="mt-0.5 p-1 rounded-lg bg-surface-container-lowest text-primary shadow-sm shrink-0">
+<span class="material-symbols-outlined text-[18px]">insights</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm text-on-tertiary-container uppercase tracking-wider font-bold">Quick AI Synthesis</span>
+<span class="font-body-sm text-body-sm text-outline">• 99.4% confidence</span>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface font-medium mt-0.5 leading-snug">
+<span class="font-bold text-primary">Brgy. Ampid I</span> and <span class="font-bold text-primary">Brgy. Guitnang Bayan</span> represent <span class="font-bold text-on-surface underline decoration-primary-container decoration-2 underline-offset-4">48% of recurring drainage clogs</span> due to low road elevation and high market density.
+              </p>
+</div>
+</div>
+<div class="flex items-center gap-2 self-end md:self-center shrink-0">
+<button class="px-3 py-1.5 rounded-full bg-surface-container-lowest hover:bg-surface-container text-on-surface-variant font-label-sm text-label-sm shadow-sm transition-all">View Correlation Map</button>
+<button class="p-1.5 rounded-full hover:bg-surface-container-lowest text-outline hover:text-on-surface transition-colors" title="Helpful answer">
+<span class="material-symbols-outlined text-[18px]">thumb_up</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- SECTION 2: Summary Metrics Bar (Grab Clean Stat Tiles) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md mb-space-xl">
+<!-- Metric 1: Severity Matrix -->
+<div class="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-outline uppercase tracking-wider">Active By Severity</span>
+<span class="p-2 rounded-xl bg-error-container text-error flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">warning</span>
+</span>
+</div>
+<div class="my-space-sm">
+<div class="flex items-baseline gap-2">
+<span class="font-headline-xl text-headline-xl text-on-surface tracking-tight">68</span>
+<span class="font-label-sm text-label-sm text-outline">Total active</span>
+</div>
+<!-- Pill distribution breakdown -->
+<div class="flex items-center gap-1.5 mt-2 flex-wrap">
+<span class="px-2 py-0.5 rounded-full bg-error-container text-error font-label-sm flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span> Critical: 7
+          </span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-on-surface font-label-sm flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> High: 18
+          </span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-low text-on-surface-variant font-label-sm flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Mod: 43
+          </span>
+</div>
+</div>
+<div class="font-body-sm text-body-sm text-outline pt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary">verified_user</span>
+        Strict SLA escalation armed
+      </div>
+</div>
+<!-- Metric 2: Open vs Resolved -->
+<div class="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-outline uppercase tracking-wider">Open vs. Resolved</span>
+<span class="p-2 rounded-xl bg-secondary-container text-on-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">task_alt</span>
+</span>
+</div>
+<div class="my-space-sm">
+<div class="flex items-baseline gap-2">
+<span class="font-headline-xl text-headline-xl text-on-surface tracking-tight">58%</span>
+<span class="font-label-md text-label-md text-primary font-bold">Clearance rate</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">
+<span class="font-bold text-on-surface">121 Open</span> <span class="text-outline">/</span> <span class="font-bold text-primary">87 Resolved</span>
+</p>
+<!-- Mini Grab Progress Bar -->
+<div class="w-full bg-surface-container h-2 rounded-full mt-3 overflow-hidden">
+<div class="bg-primary-container h-full rounded-full transition-all duration-500" style="width: 58%;"></div>
+</div>
+</div>
+<div class="font-body-sm text-body-sm text-primary pt-2 flex items-center gap-1 font-medium">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+        +12% above daily target
+      </div>
+</div>
+<!-- Metric 3: Median Resolution Time -->
+<div class="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-outline uppercase tracking-wider">Median Resolution</span>
+<span class="p-2 rounded-xl bg-tertiary-fixed/60 text-on-tertiary-fixed-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">timer</span>
+</span>
+</div>
+<div class="my-space-sm">
+<div class="flex items-baseline gap-2">
+<span class="font-headline-xl text-headline-xl text-on-surface tracking-tight">2.4 <span class="text-headline-md font-bold">hrs</span></span>
+</div>
+<div class="flex items-center gap-1.5 mt-1.5">
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm font-bold flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]">arrow_downward</span> 18%
+          </span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">vs. last week avg</span>
+</div>
+</div>
+<div class="font-body-sm text-body-sm text-outline pt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">speed</span>
+        Benchmark: &lt; 3.0 hrs
+      </div>
+</div>
+<!-- Metric 4: Average Response Time -->
+<div class="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-outline uppercase tracking-wider">Avg Response Time</span>
+<span class="p-2 rounded-xl bg-primary-fixed text-on-primary-fixed-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">bolt</span>
+</span>
+</div>
+<div class="my-space-sm">
+<div class="flex items-baseline gap-2">
+<span class="font-headline-xl text-headline-xl text-on-surface tracking-tight">38 <span class="text-headline-md font-bold">mins</span></span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+          From <span class="font-bold text-on-surface">AI visual detection</span> to field crew dispatch acknowledgment.
+        </p>
+</div>
+<div class="font-body-sm text-body-sm text-primary pt-2 flex items-center gap-1 font-medium">
+<span class="material-symbols-outlined text-[16px]">sensors</span>
+        Autonomous VIO verification
+      </div>
+</div>
+</div>
+<!-- SECTION 3: Geospatial, Distribution & Route Coverage -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg mb-space-xl">
+<!-- Bar Chart: Issues by Barangay (5 Cols) -->
+<div class="lg:col-span-4 bg-surface-container-lowest rounded-2xl p-space-md lg:p-space-lg shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+<div>
+<div class="flex items-center justify-between mb-1">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Issues by Barangay</h2>
+<span class="material-symbols-outlined text-outline text-[18px]">location_city</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-space-md">Current active reports grouped by municipal zones.</p>
+<!-- Custom SVG Horizontal Bar Chart -->
+<div class="flex flex-col gap-4">
+<!-- Item 1: Ampid I -->
+<div class="flex flex-col gap-1">
+<div class="flex items-center justify-between font-label-md text-label-md">
+<span class="text-on-surface font-semibold">Brgy. Ampid I</span>
+<span class="text-primary font-bold">34 issues</span>
+</div>
+<div class="w-full bg-surface-container h-3 rounded-full overflow-hidden flex">
+<div class="bg-primary-container h-full rounded-full transition-all duration-700" style="width: 100%;"></div>
+</div>
+</div>
+<!-- Item 2: Guitnang Bayan -->
+<div class="flex flex-col gap-1">
+<div class="flex items-center justify-between font-label-md text-label-md">
+<span class="text-on-surface font-semibold">Brgy. Guitnang Bayan</span>
+<span class="text-primary font-bold">28 issues</span>
+</div>
+<div class="w-full bg-surface-container h-3 rounded-full overflow-hidden flex">
+<div class="bg-primary-container/85 h-full rounded-full transition-all duration-700" style="width: 82%;"></div>
+</div>
+</div>
+<!-- Item 3: Dulong Bayan -->
+<div class="flex flex-col gap-1">
+<div class="flex items-center justify-between font-label-md text-label-md">
+<span class="text-on-surface font-semibold">Brgy. Dulong Bayan</span>
+<span class="text-on-surface-variant font-bold">19 issues</span>
+</div>
+<div class="w-full bg-surface-container h-3 rounded-full overflow-hidden flex">
+<div class="bg-secondary h-full rounded-full transition-all duration-700" style="width: 55%;"></div>
+</div>
+</div>
+<!-- Item 4: Banaba -->
+<div class="flex flex-col gap-1">
+<div class="flex items-center justify-between font-label-md text-label-md">
+<span class="text-on-surface font-semibold">Brgy. Banaba</span>
+<span class="text-on-surface-variant font-bold">14 issues</span>
+</div>
+<div class="w-full bg-surface-container h-3 rounded-full overflow-hidden flex">
+<div class="bg-tertiary-container h-full rounded-full transition-all duration-700" style="width: 41%;"></div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-space-md pt-space-sm bg-surface-container-low p-space-sm rounded-xl flex items-center justify-between">
+<span class="font-body-sm text-body-sm text-outline">High-density zone alert: Ampid I corridor</span>
+<button class="font-label-sm text-label-sm text-primary font-bold hover:underline">Deploy Ops</button>
+</div>
+</div>
+<!-- Donut Chart: Issue Type Distribution (4 Cols) -->
+<div class="lg:col-span-4 bg-surface-container-lowest rounded-2xl p-space-md lg:p-space-lg shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+<div>
+<div class="flex items-center justify-between mb-1">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Issue Type Distribution</h2>
+<span class="material-symbols-outlined text-outline text-[18px]">pie_chart</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-space-sm">Categorical incident spread across District 4.</p>
+<!-- Donut Visual + Center Legend -->
+<div class="flex flex-col sm:flex-row items-center justify-center gap-space-md my-space-sm">
+<div class="relative w-36 h-36 shrink-0 flex items-center justify-center">
+<!-- Inline SVG Donut -->
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 100 100">
+<!-- Background Ring -->
+<circle cx="50" cy="50" fill="transparent" r="38" stroke="#eceeef" stroke-width="14"></circle>
+<!-- Blocked Drain: 44% (circumference ~ 238.76 -> stroke-dasharray: 105 239) -->
+<circle cx="50" cy="50" fill="transparent" r="38" stroke="#00b14f" stroke-dasharray="105 239" stroke-dashoffset="0" stroke-width="14"></circle>
+<!-- Waste Accumulation: 28% (~67 length, offset -105) -->
+<circle cx="50" cy="50" fill="transparent" r="38" stroke="#70dc8f" stroke-dasharray="67 239" stroke-dashoffset="-105" stroke-width="14"></circle>
+<!-- Siltation: 18% (~43 length, offset -172) -->
+<circle cx="50" cy="50" fill="transparent" r="38" stroke="#486554" stroke-dasharray="43 239" stroke-dashoffset="-172" stroke-width="14"></circle>
+<!-- Damaged Grates: 10% (~24 length, offset -215) -->
+<circle cx="50" cy="50" fill="transparent" r="38" stroke="#e1e3e4" stroke-dasharray="24 239" stroke-dashoffset="-215" stroke-width="14"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+<span class="font-headline-sm text-headline-sm text-on-surface leading-tight font-bold">95</span>
+<span class="font-label-sm text-label-sm text-outline">Logged</span>
+</div>
+</div>
+<!-- Donut Legend Pills -->
+<div class="flex flex-col gap-2 w-full">
+<div class="flex items-center justify-between text-body-sm font-body-sm">
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-primary-container"></span>
+<span class="text-on-surface font-medium">Blocked Drain</span>
+</div>
+<span class="font-bold text-on-surface">44%</span>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm">
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary-fixed-dim"></span>
+<span class="text-on-surface font-medium">Waste Accum.</span>
+</div>
+<span class="font-bold text-on-surface">28%</span>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm">
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span>
+<span class="text-on-surface font-medium">Siltation</span>
+</div>
+<span class="font-bold text-on-surface">18%</span>
+</div>
+<div class="flex items-center justify-between text-body-sm font-body-sm">
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 rounded-full bg-surface-variant"></span>
+<span class="text-on-surface font-medium">Damaged Grate</span>
+</div>
+<span class="font-bold text-on-surface">10%</span>
+</div>
+</div>
+</div>
+</div>
+<div class="font-body-sm text-body-sm text-outline flex items-center justify-between border-t-0 pt-2">
+<span>Drainage makes up &gt;62% total bulk</span>
+<span class="material-symbols-outlined text-[16px] text-primary">filter_alt</span>
+</div>
+</div>
+<!-- Map & Route Survey Coverage (4 Cols) -->
+<div class="lg:col-span-4 bg-surface-container-lowest rounded-2xl p-space-md lg:p-space-lg shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+<div>
+<div class="flex items-center justify-between mb-1">
+<div class="flex items-center gap-1.5">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Road Network Coverage</h2>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm">Live</span>
+</div>
+<span class="material-symbols-outlined text-outline text-[18px]">alt_route</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-space-sm">Jeepney &amp; garbage truck dash-cam sensing telemetry.</p>
+<!-- Metric Highlight Banner -->
+<div class="p-3 bg-surface-container-low rounded-xl mb-3">
+<div class="flex items-baseline justify-between">
+<span class="font-headline-lg text-headline-lg text-primary font-bold">89%</span>
+<span class="font-label-sm text-label-sm text-outline uppercase font-semibold">District Coverage</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface font-medium mt-1">
+<span class="font-bold text-on-surface">381 km</span> of 428 km surveyed this week
+          </p>
+</div>
+<!-- Integrated Geo Preview -->
+<div class="relative w-full h-32 rounded-xl overflow-hidden shadow-inner group">
+<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" data-location="San Mateo, Rizal, Philippines" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC9YAQ1RwWnQOtrpkqMdXvirhUMuMrvHr3loNqOeCZ4LO5Pb0Ul4rYMZeD32hPQ9rlbC15OW6k0hlqSo-zIhKSnnShOW20uVrpa1CMsAPPqCEN5YLZyC0znTPZsF86aQyo2OYJVJvpGYiP-car1zbLYDTswWN5NxPP-hDjUBaKPXrTLin9VY7JOJ1L-jG3F6HevVFyjzUBRA4TDAobB7Nx6071mdseO8nMTzCqrkQYrWXKwtGkCaq-N')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-inverse-surface/80 via-transparent to-transparent flex items-end p-2.5">
+<div class="flex items-center justify-between w-full text-white">
+<span class="font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-primary-fixed">local_shipping</span>
+                14 Active Sensing Fleets
+              </span>
+<span class="font-label-sm text-label-sm bg-black/40 px-2 py-0.5 rounded backdrop-blur-sm">GPS Active</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-3">
+<span class="font-body-sm text-body-sm text-outline">Unsurveyed: 47 km peripheral</span>
+<button class="px-3 py-1 rounded-full bg-secondary-container hover:bg-secondary text-on-secondary-container hover:text-white font-label-sm text-label-sm transition-all flex items-center gap-1">
+<span>Re-route Fleet</span>
+<span class="material-symbols-outlined text-[14px]">turn_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- SECTION 4: Timeline Analysis Chart (Past 14 Days) -->
+<div class="bg-surface-container-lowest rounded-2xl p-space-md lg:p-space-lg shadow-sm hover:shadow-md transition-shadow mb-space-lg">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm mb-space-lg">
+<div class="flex flex-col gap-0.5">
+<div class="flex items-center gap-2">
+<h2 class="font-headline-md text-headline-md text-on-surface">Issue Detection vs. Resolution Trend</h2>
+<span class="px-2.5 py-0.5 rounded-full bg-surface-container text-on-surface font-label-sm">Past 14 Days</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">Correlation between Jeepney/Truck computer vision detection and completed municipal work orders.</p>
+</div>
+<!-- Chart Legend -->
+<div class="flex items-center gap-4 bg-surface-container-low px-3 py-1.5 rounded-full">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-primary-container"></div>
+<span class="font-label-sm text-label-sm text-on-surface font-medium">Detections (Jeepney/Truck VIO)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-tertiary"></div>
+<span class="font-label-sm text-label-sm text-on-surface font-medium">Resolved Work Orders</span>
+</div>
+</div>
+</div>
+<!-- Timeline Chart Container -->
+<div class="w-full h-72 relative flex flex-col justify-end">
+<!-- Grid line overlays -->
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-40">
+<div class="border-b border-surface-variant w-full h-0"></div>
+<div class="border-b border-surface-variant w-full h-0"></div>
+<div class="border-b border-surface-variant w-full h-0"></div>
+<div class="border-b border-surface-variant w-full h-0"></div>
+</div>
+<!-- Inline SVG Trend Line Chart -->
+<svg class="w-full h-56 overflow-visible" preserveaspectratio="none" viewbox="0 0 900 220">
+<defs>
+<lineargradient id="primaryAreaGrad" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#00b14f" stop-opacity="0.25"></stop>
+<stop offset="100%" stop-color="#00b14f" stop-opacity="0.0"></stop>
+</lineargradient>
+<lineargradient id="tertiaryAreaGrad" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#486554" stop-opacity="0.15"></stop>
+<stop offset="100%" stop-color="#486554" stop-opacity="0.0"></stop>
+</lineargradient>
+</defs>
+<!-- Area Under Detection Line -->
+<polygon fill="url(#primaryAreaGrad)" points="0,170 65,150 130,130 195,160 260,110 325,90 390,70 455,85 520,60 585,45 650,75 715,50 780,35 845,30 845,220 0,220"></polygon>
+<!-- Area Under Resolution Line -->
+<polygon fill="url(#tertiaryAreaGrad)" points="0,190 65,180 130,165 195,140 260,135 325,115 390,95 455,90 520,75 585,60 650,55 715,40 780,38 845,25 845,220 0,220"></polygon>
+<!-- Detection Trend Line (Green - #00b14f) -->
+<polyline fill="none" points="0,170 65,150 130,130 195,160 260,110 325,90 390,70 455,85 520,60 585,45 650,75 715,50 780,35 845,30" stroke="#00b14f" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></polyline>
+<!-- Resolution Trend Line (Dark Muted Slate/Green - #486554) -->
+<polyline fill="none" points="0,190 65,180 130,165 195,140 260,135 325,115 390,95 455,90 520,75 585,60 650,55 715,40 780,38 845,25" stroke="#486554" stroke-dasharray="4 4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></polyline>
+<!-- Key Data Intersect Nodes -->
+<!-- Intersect point near Day 11 (650, 75 & 55) -->
+<circle class="animate-pulse" cx="650" cy="75" fill="#00b14f" r="4.5"></circle>
+<circle cx="650" cy="55" fill="#486554" r="4"></circle>
+<!-- Final Day 14 Nodes -->
+<circle cx="845" cy="30" fill="#00b14f" r="5"></circle>
+<circle cx="845" cy="25" fill="#486554" r="4.5"></circle>
+</svg>
+<!-- Horizontal Time Axis (14 Days) -->
+<div class="flex justify-between items-center pt-3 text-outline font-label-sm text-label-sm">
+<span>Oct 11</span>
+<span>Oct 13</span>
+<span>Oct 15</span>
+<span>Oct 17</span>
+<span class="text-primary font-bold">Oct 19 (Typhoon Surge)</span>
+<span>Oct 21</span>
+<span>Oct 23</span>
+<span class="text-on-surface font-bold">Today</span>
+</div>
+</div>
+<!-- Chart Insight Footer -->
+<div class="mt-space-md pt-space-sm bg-surface-container-low/50 rounded-xl p-space-sm flex flex-col md:flex-row md:items-center justify-between gap-space-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-primary">query_stats</span>
+<span class="font-body-sm text-body-sm text-on-surface">
+          Resolution velocity reached convergence with sensor intake on <strong class="font-bold text-on-surface">Oct 23</strong>, closing the backlog gap by <strong class="text-primary font-bold">34%</strong>.
+        </span>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<button class="font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface px-2.5 py-1 rounded bg-surface-container-lowest shadow-sm">Inspect Anomalies</button>
+<button class="font-label-sm text-label-sm text-on-primary bg-primary px-3 py-1 rounded-full shadow-sm hover:bg-primary-container transition-colors">Export CSV</button>
+</div>
+</div>
+</div>
+<!-- Real-Time Field Ops Snapshot (Photo Evidence & Crew Dispatch Context) -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md mb-space-xl">
+<!-- Dispatch Card 1 -->
+<div class="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="px-2 py-0.5 rounded-full bg-error-container text-error font-label-sm font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span> Critical P1
+          </span>
+<span class="font-body-sm text-body-sm text-outline">12m ago</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface line-clamp-1">Major Culvert Obstruction</h3>
+<p class="font-body-sm text-body-sm text-outline flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[14px] text-primary">pin_drop</span>
+          Market Rd. crossing Gen. Luna
+        </p>
+<div class="mt-3 relative h-28 rounded-xl overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Close-up photograph of a concrete municipal storm drainage inlet partially clogged with urban debris and silt in a busy Asian district, photographed during daytime with clear sharp focus." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNjSJCs-cBqJm1JnoAtSHJ1PRaC6FweNadpWipPcw9gNue_bzFzNxtburcuzlOGet-T4bnzWDl5xOyk8IVZsnPRgIP6ZuSJPYnXSZ3vVuWue2MCykC8BYNHPLi1-b3gIl-zfLY2V1s9DqoraQFxwXPx7iOglelkMuL7ytw5VRt9ldiR6bmzXPlTSNRcYeu61JAi0P2PLUKxX7bOec6V6hCEnIamdgQySwISonZq9Z8GC0mJ_WcNjQO"/>
+<div class="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded bg-black/60 text-white font-label-sm text-label-sm backdrop-blur-sm">
+            AI Conf: 98%
+          </div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-3">
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">Crew #04 Dispatched</span>
+<span class="font-body-sm text-body-sm text-primary font-bold">ETA 6 min</span>
+</div>
+</div>
+<!-- Dispatch Card 2 -->
+<div class="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-on-surface font-label-sm font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> High Maintenance
+          </span>
+<span class="font-body-sm text-body-sm text-outline">28m ago</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface line-clamp-1">Broken Sump Cover Incline</h3>
+<p class="font-body-sm text-body-sm text-outline flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[14px] text-primary">pin_drop</span>
+          Brgy. Guitnang Bayan II Sector 3
+        </p>
+<div class="mt-3 relative h-28 rounded-xl overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A damaged steel road drainage grate along an asphalt street curb in the Philippines, marked with municipal warning tape in natural sunlight." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2_yxnP9FgxcbmKqrr4jaPfPCvUgsHBNROCijL_fspgnXMzdgxh96qxTraBbq8NRY6fjVtkvqlyxlzg4NE9LtEfkd1VtkaEZ5lJk1Y5tGiPJ6VqAhR9hQAExUQjOQlcc2fwV-1LIu0YKrDiBQGOjeJsYkDR6VcfoSqseMGEPNuPMWHYgYCYe1_4CiopuVTHLH-R0iL_TMpBq49Gmo7WAfurvXu_KxxoyklV7oWxqg1FrQNMd_lvKC9"/>
+<div class="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded bg-black/60 text-white font-label-sm text-label-sm backdrop-blur-sm">
+            AI Conf: 94%
+          </div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-3">
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">Work Order #8821</span>
+<button class="px-3 py-1 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface font-label-sm text-label-sm transition-all">Details</button>
+</div>
+</div>
+<!-- Dispatch Card 3 -->
+<div class="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+<div>
+<div class="flex items-center justify-between mb-2">
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span> Resolved
+          </span>
+<span class="font-body-sm text-body-sm text-outline">1h 14m ago</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface line-clamp-1">Desiltation Completed</h3>
+<p class="font-body-sm text-body-sm text-outline flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-[14px] text-primary">pin_drop</span>
+          Kambal Road Canal Wing
+        </p>
+<div class="mt-3 relative h-28 rounded-xl overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Municipal public works crew in neon safety vests finishing clean drainage clearing on an open concrete city culvert under clear daylight." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAomICBHg4zdDIp8RcGxB47Oid041ILpIMWUONF4suOlNzsf5TbBD00m6pzwummIBLuxYfwD7JHzZEd0OM4sRSVtB1uskaCnc6OIf2Anxb_uZ8ToZUX2fIFiY_cuW_lurNQxqSGMEh0pGKGquCz4fEw7yns1n3Ar-3EJ8jH8ReH2B_DMWn58OputXYnqSDXGrZYUnWOTs5ogywpzBIPxUpH7qgjhinOCen_dABaDO4XOYi44ZrNWH3F"/>
+<div class="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded bg-primary text-white font-label-sm text-label-sm backdrop-blur-sm">
+            Verified Clean
+          </div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-3">
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">Cleared in 1.8 hrs</span>
+<span class="material-symbols-outlined text-[18px] text-primary">check_circle</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Inline JavaScript Micro-interactions -->
+<script>
+  function setQuery(text) {
+    const input = document.getElementById('quick-query-input');
+    if (input) {
+      input.value = text;
+      input.focus();
+      // Visual feedback pulse
+      input.parentElement.classList.add('ring-2', 'ring-primary-container');
+      setTimeout(() => {
+        input.parentElement.classList.remove('ring-2', 'ring-primary-container');
+      }, 600);
+    }
+  }
+</script></main></div></body></html>

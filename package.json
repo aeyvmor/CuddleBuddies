@@ -7,6 +7,7 @@
     "node": "^22.12.0 || ^24.0.0"
   },
   "workspaces": [
+    "apps/web",
     "packages/contracts",
     "packages/domain",
     "database",
@@ -15,8 +16,12 @@
   ],
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck:web": "npm run typecheck -w @astig/web",
     "test": "vitest run --project unit",
     "test:db": "vitest run --project db",
+    "test:web": "npm test -w @astig/web",
+    "build:web": "npm run build -w @astig/web",
+    "web:dev": "npm run dev -w @astig/web",
     "db:up": "docker compose -f database/local/compose.yaml up -d --wait",
     "db:down": "docker compose -f database/local/compose.yaml down",
     "db:migrate": "npm run migrate -w @astig/database",

@@ -1,0 +1,37 @@
+/*
+ * Semantic design tokens. The UI designer may change any value here (or replace
+ * this file) without touching feature logic. Components reference only these
+ * names, never literal colours or sizes.
+ */
+:root {
+  --color-surface: #ffffff;
+  --color-surface-muted: #f3f5f7;
+  --color-border: #c9d1d9;
+  --color-text: #1b2430;
+  --color-text-muted: #4a5668;
+  --color-accent: #0b5cad;
+  --color-accent-contrast: #ffffff;
+  --color-focus: #ffb000;
+  --color-danger: #b42318;
+  --color-synthetic: #7a3e9d;
+
+  --color-severity-low: #2e7d32;
+  --color-severity-medium: #b26a00;
+  --color-severity-high: #c2410c;
+  --color-severity-critical: #b42318;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+
+  --radius-1: 4px;
+  --radius-2: 8px;
+
+  --font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-size-1: 0.8125rem;
+  --font-size-2: 0.9375rem;
+  --font-size-3: 1.125rem;
+  --font-size-4: 1.375rem;
+}

@@ -1,0 +1,17 @@
+.section h3 { margin: 0 0 var(--space-2); font-size: var(--font-size-3); }
+.muted { color: var(--color-text-muted); font-size: var(--font-size-1); }
+.error { color: var(--color-danger); font-weight: 600; }
+.field { display: flex; flex-direction: column; gap: var(--space-1); margin-bottom: var(--space-3); font-size: var(--font-size-1); color: var(--color-text-muted); }
+.field input, .field textarea {
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-1);
+}
+.section button {
+  padding: var(--space-2) var(--space-4);
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
+  border: 0;
+  border-radius: var(--radius-1);
+  cursor: pointer;
+}
