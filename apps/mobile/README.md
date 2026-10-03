@@ -8,7 +8,7 @@ Follow `.kiro/specs/astig/requirements.md` and `docs/api/contract.md`. Validate 
 
 ## Feasibility findings
 
-Status: **IN PROGRESS. No device has been connected yet, so nothing below is a device measurement unless it says "measured on device".** Labels: **[measured]** = run on this machine or device; **[docs]** = inferred from package source or documentation, not verified on a device.
+Status: **IN PROGRESS. Device connected and first indoor trial run; the outdoor walk is still pending.** Labels: **[measured]** = run on this machine or device; **[docs]** = inferred from package source or documentation, not verified on a device.
 
 ### Spike app (throwaway)
 
@@ -35,11 +35,11 @@ Commands (from `apps/mobile`): `npm install`, `npm test`, `npm run typecheck`, `
 | `npx expo --version` | 57.0.27; runs on Node 24 |
 | `npx expo-doctor` | 21/21 checks passed |
 | `npx tsc --noEmit` | passes |
-| `npm test` (`node --test`, 7 tests) | 7 pass |
+| `npm test` (`node --test`, 9 tests) | 9 pass |
 | `npx expo export --platform android` | JS bundle builds (Hermes, 2.2 MB) |
 | `npx expo prebuild --platform android --no-install` | native project generated. Manifest has CAMERA, FINE/COARSE location, and ARCore `optional` meta-data. No background-location permission. |
-| JDK | OpenJDK 21.0.12 present. Not yet confirmed with a Gradle build. |
-| Android SDK / adb | **Not installed.** `adb` is not on PATH, and `%LOCALAPPDATA%\Android\Sdk` does not exist. |
+| JDK | OpenJDK 21.0.12; Gradle release build succeeds (12 min first build, under 2 min after). |
+| Android SDK / adb | Installed 2026-10-04: API 36, build-tools 36.0.0, NDK 27.1.12297006, CMake 3.22.1; `adb` on PATH; `ANDROID_HOME` set. |
 | Root workspace | `package.json`, `package-lock.json`, `tsconfig.json`, `vitest.config.ts` unchanged |
 
 Prebuild notes:
@@ -54,14 +54,28 @@ Prebuild notes:
 - **Fallback:** a small local Expo module in Kotlin wrapping `com.google.ar.core.Session` camera pose, if Viro fails to build or is too heavy.
 - **Camera conflict:** ARCore owns the camera while AR is active. The spike therefore cannot run `expo-camera` capture and VIO at the same time; capture in AR mode would need an AR-frame image. This is an architectural risk for the real capture app.
 
-### Device results: PENDING
+### Device results: PARTIAL (2026-10-04)
+
+Device: Xiaomi REDMI Note 15 Pro 5G (model 25080RABDG), Android 16. Built with `gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a` (standalone, JS bundled, so it runs unplugged) and installed with `adb install -r`. The first build needed NDK 27.1.12297006 reinstalled, because an interrupted earlier install had left an empty folder.
 
 | Question | Status |
 | --- | --- |
-| 1. Dev build installs and launches; device model and Android version | Not tested: no SDK, adb, or device yet |
-| 2. Camera capture and foreground location; outdoor reported accuracy | Not tested |
-| 3. ARCore support; `VIO_DISTANCE` vs `GPS_DISTANCE` error over ≥ 50 m | Not tested |
+| 1. Build installs and launches | **[measured]** Yes. Xiaomi needs "Install via USB" enabled in Developer options. This is a release build with `expo-dev-client` included; the Metro dev-client workflow was not exercised. |
+| 2. Camera capture and foreground location | **[measured]** Camera preview works and both permissions are granted. Indoors the reported accuracy was ±5 to ±9 m, with fixes 5–8 s apart. The capture button and outdoor accuracy are **not tested**. |
+| 3. ARCore support; `VIO_DISTANCE` vs `GPS_DISTANCE` | **[measured]** ARCore is supported and tracking reaches NORMAL. One indoor night trial only: see below. The ≥ 50 m outdoor daylight walk is **not done**. |
 | 4. Screen lock / background behavior | Not tested |
+
+Indoor trial (about 02:20 local, dim room, 10 m reference **estimated by eye, not measured**, so the error figures below are not valid, about 14 s walk):
+
+| Measure | Result |
+| --- | --- |
+| `VIO_DISTANCE` (per-update sum) | 14.68 m, +46.8% |
+| VIO tracking losses | 4 during the walk |
+| `GPS_DISTANCE` raw and filtered | 0.12 m (3 fixes), −98.8%; not meaningful indoors |
+
+This trial is not a verdict. The per-update sum adds hand sway and pose jitter at 30–60 updates per second, and kept climbing to 40 m while the phone was carried back to the desk. A second accumulator was added afterwards (`steppedM`, counts only displacement ≥ `VIO_MIN_STEP_M` = 0.25 m from the last anchor); the app and its report now show both. Whether stepping fixes the over-read is **unverified** until the next walk. Frequent tracking loss is consistent with low light, also unverified.
+
+No go/no-go on Expo or on the distance source yet.
 
 ### Contract gaps (draft `packages/contracts/src/observation.ts`), preliminary
 

@@ -136,8 +136,10 @@ export default function App() {
       gps_fixes: gps.fixes,
       gps_rejected_fixes: gps.rejectedFixes,
       gps_last_accuracy_m: gps.last?.accuracyM ?? null,
-      VIO_DISTANCE_m: mode === "VIO" ? +vio.horizontalM.toFixed(2) : null,
-      VIO_DISTANCE_error: mode === "VIO" ? err(vio.horizontalM) : "not run (VIO mode off)",
+      VIO_DISTANCE_stepped_m: mode === "VIO" ? +vio.steppedM.toFixed(2) : null,
+      VIO_DISTANCE_stepped_error: mode === "VIO" ? err(vio.steppedM) : "not run (VIO mode off)",
+      VIO_DISTANCE_per_update_m: mode === "VIO" ? +vio.horizontalM.toFixed(2) : null,
+      VIO_DISTANCE_per_update_error: mode === "VIO" ? err(vio.horizontalM) : "not run (VIO mode off)",
       vio_tracking_losses: vio.trackingLosses,
       ar_support: arSupport,
     };
@@ -184,7 +186,10 @@ export default function App() {
           GPS_DISTANCE filtered: {gps.filteredM.toFixed(1)} m (accuracy ≤ {MAX_ACCURACY_M} m; {gps.rejectedFixes} rejected)
         </Text>
         <Text>
-          VIO_DISTANCE: {mode === "VIO" ? `${vio.horizontalM.toFixed(1)} m · tracking ${vio.tracking} · losses ${vio.trackingLosses}` : "off"}
+          VIO_DISTANCE:{" "}
+          {mode === "VIO"
+            ? `${vio.steppedM.toFixed(1)} m stepped (${vio.horizontalM.toFixed(1)} m per-update sum) · tracking ${vio.tracking} · losses ${vio.trackingLosses}`
+            : "off"}
         </Text>
         <Text>Captures this run: {captures}</Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginVertical: 8 }}>

@@ -61,6 +61,25 @@ test("VIO: tracking loss counts, and re-acquisition does not add a jump", () => 
   assert.equal(s.trackingLosses, 1);
 });
 
+test("VIO: stepped distance ignores jitter that inflates the per-update sum", () => {
+  let s = setVioTracking(initialVioState, "NORMAL");
+  // 10 m straight along x in 1 cm updates, with 2 cm of side-to-side sway on every update.
+  for (let i = 0; i <= 1000; i++) s = addVioPose(s, { x: i * 0.01, y: 0, z: i % 2 === 0 ? 0 : 0.02 });
+  assert.ok(s.horizontalM > 20, `per-update sum ${s.horizontalM}`);
+  assert.ok(Math.abs(s.steppedM - 10) < 0.3, `stepped ${s.steppedM}`);
+});
+
+test("VIO: stepped distance re-anchors after a tracking loss", () => {
+  let s = setVioTracking(initialVioState, "NORMAL");
+  s = addVioPose(s, { x: 0, y: 0, z: 0 });
+  s = addVioPose(s, { x: 1, y: 0, z: 0 });
+  s = setVioTracking(s, "UNAVAILABLE");
+  s = setVioTracking(s, "NORMAL");
+  s = addVioPose(s, { x: 50, y: 0, z: 0 }); // re-anchor, no jump
+  s = addVioPose(s, { x: 51, y: 0, z: 0 });
+  assert.equal(s.steppedM, 2);
+});
+
 test("trigger fires at the configured interval, not before", () => {
   assert.equal(shouldCapture(6.9, 0, 7), false);
   assert.equal(shouldCapture(7, 0, 7), true);

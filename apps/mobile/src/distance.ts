@@ -76,20 +76,34 @@ export interface Vec3 {
 
 export type VioTracking = "NORMAL" | "LIMITED" | "UNAVAILABLE";
 
+/**
+ * Minimum horizontal displacement before the stepped accumulator counts a step.
+ * Summing every pose update (30-60 per second) also sums hand sway and tracking
+ * jitter, which inflated a 10 m indoor trial to 14.7 m. Stepping ignores movement
+ * smaller than this, at the cost of slightly under-reading a curved path.
+ */
+export const VIO_MIN_STEP_M = 0.25;
+
 export interface VioDistanceState {
-  /** Horizontal (x/z plane) path length while tracking was NORMAL. Y is vertical in ARCore world space. */
+  /** Horizontal (x/z plane) path length while tracking was NORMAL, summed over every pose update. Y is vertical in ARCore world space. */
   horizontalM: number;
+  /** Same path, counted only in steps of at least VIO_MIN_STEP_M from the last anchor. */
+  steppedM: number;
   /** Times tracking left NORMAL. Each one is a gap in measured distance. */
   trackingLosses: number;
   tracking: VioTracking;
   last: Vec3 | null;
+  /** Position of the last counted step for steppedM. */
+  anchor: Vec3 | null;
 }
 
 export const initialVioState: VioDistanceState = {
   horizontalM: 0,
+  steppedM: 0,
   trackingLosses: 0,
   tracking: "UNAVAILABLE",
   last: null,
+  anchor: null,
 };
 
 /** Only NORMAL tracking contributes. After a loss, the next NORMAL pose re-anchors without adding a step. */
@@ -101,13 +115,22 @@ export function setVioTracking(state: VioDistanceState, tracking: VioTracking): 
     tracking,
     trackingLosses: state.trackingLosses + (lost ? 1 : 0),
     last: tracking === "NORMAL" ? state.last : null,
+    anchor: tracking === "NORMAL" ? state.anchor : null,
   };
 }
 
 export function addVioPose(state: VioDistanceState, p: Vec3): VioDistanceState {
   if (state.tracking !== "NORMAL") return state;
   const step = state.last ? Math.hypot(p.x - state.last.x, p.z - state.last.z) : 0;
-  return { ...state, horizontalM: state.horizontalM + step, last: p };
+  const fromAnchor = state.anchor ? Math.hypot(p.x - state.anchor.x, p.z - state.anchor.z) : 0;
+  const counted = fromAnchor >= VIO_MIN_STEP_M;
+  return {
+    ...state,
+    horizontalM: state.horizontalM + step,
+    steppedM: state.steppedM + (counted ? fromAnchor : 0),
+    last: p,
+    anchor: counted || !state.anchor ? p : state.anchor,
+  };
 }
 
 /** Distance-based trigger: true when travelled distance since the last capture reaches the interval. */
