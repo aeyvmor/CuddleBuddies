@@ -70,9 +70,10 @@ async function associateIssue(db: Queryable, o: ObsRow, issueType: string): Prom
     return match.rows[0].id;
   }
   // New issue at the raw capture point; uncertainty is the device accuracy (unknown stays unknown).
+  // Area name comes from loaded, attributed boundaries; NULL when no boundary contains the point.
   const created = await db.query<{ id: string }>(
-    `INSERT INTO issues (id, issue_type, latitude, longitude, location_uncertainty_m, first_observed_at, last_observed_at, is_synthetic)
-     VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $5, $6) RETURNING id`,
+    `INSERT INTO issues (id, issue_type, latitude, longitude, location_uncertainty_m, area_name, first_observed_at, last_observed_at, is_synthetic)
+     VALUES (gen_random_uuid(), $1, $2, $3, $4, astig_area_name_for($2, $3), $5, $5, $6) RETURNING id`,
     [issueType, o.latitude, o.longitude, o.horizontal_accuracy_m, o.captured_at, o.is_synthetic],
   );
   return created.rows[0]!.id;

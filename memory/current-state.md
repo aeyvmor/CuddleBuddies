@@ -1,4 +1,4 @@
-﻿# ASTIG team handoff
+# ASTIG team handoff
 
 > Update this page at the end of each meaningful work session. Durable requirements/design live in `.kiro/specs/astig/` and `docs/`.
 
@@ -9,8 +9,8 @@
 - Recommended defaults documented: Expo development build (verify native VIO support), npm workspaces, Zod shared schemas, SQL migrations + `pg`, Docker PostGIS locally, and AWS CDK in TypeScript.
 - User owns backend and AWS tasks, is new to AWS, and will work from an iPad; setup docs guide browser-based Console/CloudShell access without local AWS installation or long-lived keys.
 - Street View is deferred for the MVP to avoid per-request billing and terms/setup overhead; use team-captured, synthetic, or explicitly licensed images.
-- **Demo evidence (2026-10-04):** Manila dashcam footage, replayed through the real API with distance-based frame sampling. The plan and open questions (rights, GPS, vision provider, `DASHCAM_REPLAY`) are in `docs/operations/dashcam-demo-data.md`. Nothing is built yet.
-- **QuickSight (2026-10-04):** Enterprise account `aeyvmorqs`, one user changed from ADMIN_PRO to **ADMIN** (avoids the $250/month Pro fee), S3 access granted to the analytics bucket only. Datasets `ASTIG issues` and `ASTIG sessions` (SPICE, typed columns, lat/lon tagged) were created through the API. The dashboard is not built yet.
+- **Demo evidence (2026-10-04):** team-recorded Manila dashcam footage (no GPS → hand-traced routes) replayed through the real API by `tools/dashcam-replay` (`DASHCAM_REPLAY` sampling, demo device `isSynthetic`). Gemini adapter deployed (`VISION_PROVIDER=gemini`); **paste the real key into the `VisionProviderApiKey` secret**. Migration 0003 and 17 NCR city boundaries (OSM, ODbL) are loaded; new issues get a city name. Verified live with a synthetic test video. Runbook: `docs/operations/dashcam-demo-data.md`.
+- **QuickSight (2026-10-04):** Enterprise account `aeyvmorqs`, one user changed from ADMIN_PRO to **ADMIN** (avoids the $250/month Pro fee), S3 access granted to the analytics bucket only. Datasets `ASTIG issues` and `ASTIG sessions` (SPICE, typed columns, lat/lon tagged) were created through the API. Dashboard `ASTIG Operations` published.
 - Added pre-build setup checklist and four role-specific AI coding prompts.
 - **Backend slice (deployed):** npm workspaces root; `packages/contracts` (Zod v0 draft); `packages/domain` (risk score, work-order transitions, object keys, issue matching); `database` (migration 0001, synthetic seed, scripts, admin Lambda); `services/api` (issue detail, work orders, sessions, observation registration, upload URL, presigned evidence reads); `services/worker` (ingest/persist, provider adapter defaulting to `PROVIDER_NOT_CONFIGURED`, issue association, rescoring); `infra/aws` (evidence + app stacks).
 - Contract draft in `docs/api/contract-v0-proposal.md` is **pending team confirmation**. The web client imports `@astig/contracts`. `GET /issues` (web gaps G1–G5) and `GET /analytics/summary` are now live, so the web app can drop its local list types. G6 (the recommendation band) is still open.

@@ -31,6 +31,8 @@
     "services/api/test",
     "services/worker/src",
     "services/worker/test",
+    "tools/dashcam-replay/src",
+    "tools/dashcam-replay/test",
     "infra/aws/bin",
     "infra/aws/lib",
     "infra/aws/test"

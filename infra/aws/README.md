@@ -29,7 +29,7 @@ Send `Authorization: Bearer <Cognito access or ID token>`. Roles come from Cogni
 | Secrets | RDS-managed master secret, plus `VisionProviderApiKey`, a placeholder for the worker owner to set in the console |
 | Auth | Cognito user pool (Lite plan, no self sign-up), groups `OFFICER`/`OPERATOR`. HTTP API JWT authorizer on all routes except the CORS-preflight-only `OPTIONS` route. Throttled to 20 req/s, burst 40 |
 | Lambdas (Node 22, arm64, 7-day logs) | `Api`, `Persist`, `Admin` run inside the VPC. `Ingest` runs outside the VPC so it can reach the vision provider, and calls `Persist` for database writes |
-| Processing trigger | S3 `ObjectCreated` on `sessions/*.jpg` → `Ingest` → `Persist` |
+| Processing trigger | S3 `ObjectCreated` on `sessions/*.jpg` â†’ `Ingest` â†’ `Persist` |
 | Analytics | `AnalyticsExport` Lambda (in the VPC; runs every 15 min via EventBridge, or on demand) writes aggregate CSVs and QuickSight manifests to a **separate private analytics bucket** (`AnalyticsBucketName` output): `analytics/manifests/issues.json`, `analytics/manifests/sessions.json`. No images, free text, or user identifiers. |
 
 ## Amazon QuickSight (executive analytics)
@@ -59,7 +59,7 @@ npx cdk diff  -c account=<id> -c region=ap-southeast-1      # preview
 npx cdk deploy --all -c account=<id> -c region=ap-southeast-1
 ```
 
-The database is private, so schema and data operations go through the admin Lambda (name in the stack output `AdminFunctionName`). Payloads: `{"action":"migrate"}`, `{"action":"seed"}`, `{"action":"status"}`, `{"action":"register-device","label":"Team phone 1"}`, `{"action":"register-vehicle","label":"Team car 1"}`. Labels are equipment names, never people's names. There's no reset action on purpose.
+The database is private, so schema and data operations go through the admin Lambda (name in the stack output `AdminFunctionName`). Payloads: `{"action":"migrate"}`, `{"action":"seed"}`, `{"action":"status"}`, `{"action":"load-ncr-cities"}` (17 OSM city boundaries, ODbL), `{"action":"register-device","label":"Team phone 1"}` and `register-vehicle` (add `"isSynthetic":true` for demo/replay equipment). Labels are equipment names, never people's names. There's no reset action on purpose.
 
 ```text
 aws lambda invoke --function-name <AdminFunctionName> --payload fileb://payload.json out.json
@@ -78,7 +78,7 @@ aws cognito-idp admin-add-user-to-group --user-pool-id ap-southeast-1_uYQoBKBkj 
 
 - Migrations applied and synthetic seed loaded. `status` shows migrations `0001` and PostGIS 3.5.6.
 - Login: a request without a token gets `401`. With a Cognito token, `GET /issues/{seed}` returns `200`, score 42.25, evidence `AVAILABLE` (presigned).
-- Capture path: `POST /sessions` → `201`; register observation → `201 PENDING`; `POST /upload-url` → presigned PUT.
+- Capture path: `POST /sessions` â†’ `201`; register observation â†’ `201 PENDING`; `POST /upload-url` â†’ presigned PUT.
 - S3 rejects a PUT with the wrong length (`403`) and accepts the correct one (`200`).
 - The worker recorded the uploaded image as `FAILED: PROVIDER_NOT_CONFIGURED`. This is the expected honest result until a vision provider is connected.
 - An invalid work-order transition returns `409`. CORS preflight from `localhost:5173` returns `204` with allow-origin; a foreign origin gets no allow-origin header.
@@ -89,7 +89,7 @@ aws cognito-idp admin-add-user-to-group --user-pool-id ap-southeast-1_uYQoBKBkj 
 - The Lambdas use the RDS master user. A least-privilege app role is a follow-up.
 - New accounts have a Lambda concurrency limit of 10. Request an increase through Service Quotas if uploads queue up.
 - There's no CloudWatch alarm yet. Processing failures are visible as `FAILED` observations and in the `Ingest` logs.
-- Vision provider: `VISION_PROVIDER=none`. The worker owner adds a Gemini adapter in `services/worker/src/provider.ts`, sets the secret, and changes the env var.
+- Vision provider: `VISION_PROVIDER=gemini` (model `gemini-3.8-flash`, override with `-c geminiModel=...`). Until the `VisionProviderApiKey` secret holds a real key, every image fails with `PROVIDER_NOT_CONFIGURED`. See `docs/operations/dashcam-demo-data.md` step 1.
 
 ## Teardown (after judging)
 

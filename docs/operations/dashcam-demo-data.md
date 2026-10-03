@@ -1,73 +1,53 @@
-# Demo data from Manila dashcam footage (plan)
+# Demo data from Manila dashcam footage
 
-Status: **plan, pending answers to the open questions below.** Owner: backend/AWS (replay tooling), with the team for footage selection and redaction.
+Status: **implemented and verified end to end on AWS (2026-10-04)** with a synthetic test video. Waiting for the team's footage and the Gemini key.
 
-## Goal
+Decisions (2026-10-04):
+- The footage is **team-recorded**.
+- The dashcam has **no GPS**, so the route is hand-traced.
+- The vision provider is **Gemini**.
+- `DASHCAM_REPLAY` is approved as a sampling method.
+- **Area names** are on (NCR city boundaries).
 
-Use real Manila street footage as the demo evidence while staying honest about how it was captured. The footage goes through the **same API, S3 upload, worker, scoring and work-order path** as a live capture. Only the *capture device* is simulated: a replay tool stands in for the phone.
+## How it works
 
-## Pipeline
+Curated, redacted frames go through the **same API, S3 upload, worker, Gemini call, validation, issue matching, scoring, and work-order path** as a live phone capture. Only the capture device is simulated: the replay tool (`tools/dashcam-replay`) stands in for the phone.
 
 ```text
-dashcam video (+ GPS track) ──► 1. track     GPS points with timestamps (embedded GPS, or hand-traced route)
-                                2. plan      a capture point every ~7 m of travelled distance along the track
-                                3. extract   one still frame per capture point (ffmpeg), kept off Git and off S3
-                                4. curate    drop unusable frames; blur faces and plates; human check
-                                5. replay    POST /sessions → POST /sessions/{id}/observations → POST /upload-url → PUT
-                                             (operator login via Cognito; idempotent ids, safe to re-run)
-                                6. process   the S3 event triggers the worker → vision provider → validated detection
-                                             or explicit FAILED → issue association → risk.v0 score
-                                7. operate   officer reviews in the web app → work order → resolved → analytics/QuickSight
+team dashcam video ─► trace route + anchors ─► plan (frame every 7 m) ─► extract (ffmpeg)
+  ─► redact + curate (blur faces/plates, drop bad frames, 2nd-person check)
+  ─► replay as OPERATOR: POST /sessions → POST /sessions/{id}/observations → POST /upload-url → PUT S3
+  ─► worker: Gemini → schema validation → issue (25 m, same type) + NCR city name → risk.v0 score
+  ─► officer: web map/detail → work order → resolved → analytics export → QuickSight
 ```
 
-### 1. GPS track
+## Runbook
 
-- **If the dashcam embeds GPS** (many do in the MP4 metadata): extract the track with `exiftool -ee -n -p '$gpsdatetime,$gpslatitude,$gpslongitude,$gpsspeed' video.mp4`, or with the dashcam vendor's player export (GPX/NMEA). `horizontalAccuracyM` stays `null` unless the file records it.
-- **If it doesn't:** hand-trace the route on a map along the roads visible in the video, save it as a GPX file, and assign timestamps from the video timeline with an assumed constant speed per segment. These coordinates are approximate. The replay must label them that way (see *Labeling*) and set `horizontalAccuracyM` to a stated estimate, e.g. 15 m, never `null`-as-exact.
+1. **Gemini key (one time).** In the AWS console (Singapore), open **Secrets Manager**, select the secret `VisionProviderApiKey…` (stack output `VisionSecretName`), choose **Retrieve secret value** → **Edit** → **Plaintext**, paste only the key, and save. The worker picks it up within 5 minutes. Never put the key in code, `.env.example`, chat, or a screenshot.
+2. **Operator login (one time).** Create a Cognito user in the `OPERATOR` group (commands in `infra/aws/README.md`). Put the credentials in your git-ignored `.env`, together with `ASTIG_REPLAY_DEVICE_ID=cd9706b5-cf1b-45e3-ba7c-c78ebc211d5d` and `ASTIG_REPLAY_VEHICLE_ID=4f031f08-be00-491d-a249-72f53d3e6e19`. These are registered as `Dashcam replay rig (demo)` and `Dashcam replay vehicle (demo)`, both `isSynthetic: true`.
+3. **Footage.** Copy the video into `demo-footage/` (git-ignored). Write a route file (see `tools/dashcam-replay/README.md`).
+4. **Plan and extract:** `npm run dashcam -- plan --route <file>`, then `npm run dashcam -- extract --work <dir>`.
+5. **Redact and curate.**
+   - Blur every face and licence plate (any blur tool, e.g. `deface` for faces plus manual boxes for plates). Keep the same file names.
+   - Delete frames that are unusable or can't be cleaned well; 20–60 good frames are enough.
+   - Save the results to `<work>/redacted/`.
+   - A second person checks every frame before upload.
+6. **Replay:** `npm run dashcam -- replay --work <dir>`. Re-run it if anything fails; it's idempotent.
+7. **Check:** issues appear on the map with their city name; `FAILED` frames show their reason. Invoke the analytics export, then refresh QuickSight.
+8. **After the event:** delete local frames and video. Uploaded evidence expires from S3 after 30 days, and teardown deletes it earlier.
 
-### 2. Distance-based sampling
+## Truthful labeling
 
-Walk the track, add up haversine distances, and emit a capture point every `intervalM` (default 7 m). This is the same rule as the mobile client, so the demo still shows distance-based (not timer-based) sampling. `distanceFromPreviousM` is the computed spacing.
+- Each frame's sampling method shows as "Dashcam replay (recorded footage)", never GPS or VIO.
+- Every replayed row is `isSynthetic = true`, so demo badges and `includesSynthetic` apply.
+- Locations are hand-traced, with stated uncertainty (`horizontalAccuracyM`), and the issue's `locationUncertaintyM` inherits it. Area names come from OpenStreetMap city boundaries (ODbL); they are not authoritative legal boundaries.
+- Gemini output is real model output on real frames (`modelVersion: gemini:<model>`). It's advisory. Officers decide.
+- If Gemini is unavailable, frames show `FAILED` with the reason. They're never shown as detections.
+- Script line: "Real Manila street footage our team recorded, replayed through ASTIG. Capture timing is simulated and locations are hand-traced."
 
-### 3–4. Frames, curation and privacy
+## Verified (2026-10-04, synthetic test pattern, not footage)
 
-- Extract JPEGs at the planned video offsets (`ffmpeg -ss <t> -i video.mp4 -frames:v 1 -q:v 3 out.jpg`), under 10 MiB each.
-- Keep raw video and extracted frames **out of Git** (they're in `.gitignore`) and out of shared drives the team hasn't agreed on. Only curated, redacted frames are uploaded.
-- **Redaction:**
-  - Blur visible faces and licence plates before upload. A face-blur tool (e.g. `deface`) plus manual plate boxes is enough for a demo.
-  - A second person checks every uploaded frame.
-  - Drop frames that can't be cleaned well.
-- Curate down to a small, convincing set: roughly 20–60 frames, including a few clear drainage or road issues and some "nothing to see" frames.
-
-### 5. Replay through the real API
-
-- A replay CLI (proposed `tools/dashcam-replay/`, Node + TypeScript, no new runtime services) signs in as an `OPERATOR` Cognito user and drives the real endpoints.
-- **Identifiers are deterministic**: `clientSessionId` and `clientObservationId` are UUIDv5 values derived from the video hash and frame index. Re-running after a network failure therefore replays safely (idempotent API), and nothing is duplicated.
-- `capturedAt` is the footage's real time when known (embedded GPS time). Otherwise it's the video timeline offset from a stated start time, recorded in the replay manifest.
-- Register one device and vehicle for the replay through the admin Lambda, with an explicit label such as `Dashcam replay rig (demo)`.
-
-### 6. Vision results (choose one, label it truthfully)
-
-| Option | When | What the UI shows |
-| --- | --- | --- |
-| Live Gemini adapter | Key and quota available | Real model output on real frames (`modelVersion` = Gemini model id) |
-| Annotated fixtures | Gemini unavailable | A `fixture` provider returns **human-written labels** for each frame (`modelVersion: "human-annotation-v0"`). Presented as "pre-labeled demo result", never as live AI |
-| None | Neither ready | Frames show `FAILED: PROVIDER_NOT_CONFIGURED`; the seeded synthetic issues carry the demo |
-
-## Labeling (no misrepresentation)
-
-- Replay sessions and observations are demo data, not live ASTIG captures. The replay device is registered as **synthetic/demo**, so every derived row has `isSynthetic = true` and the existing demo badges and `includesSynthetic` flags apply.
-- **Proposed contract change (needs team approval):** add `samplingMethod: "DASHCAM_REPLAY"`, so a replayed frame is never presented as on-device GPS/VIO sampling. Implementation is a small migration widening the check constraint, plus the Zod enum.
-- The demo script says plainly: "real Manila street footage, replayed through ASTIG; capture timing simulated; locations from the dashcam GPS / hand-traced."
-
-## Open questions (answer before building)
-
-1. **Source and rights:** who recorded the footage? Team-recorded footage is fine. Footage downloaded from YouTube or social media needs the owner's written permission, or a licence that allows this use; otherwise don't use it (see `docs/architecture/decisions.md`).
-2. **GPS:** does the dashcam file contain GPS (brand/model?), or is there only an on-screen overlay or nothing?
-3. **Vision provider:** will Gemini be ready, or should I build the annotated-fixture provider?
-4. **Contract:** approve `DASHCAM_REPLAY` as a `samplingMethod` value?
-5. **Areas:** should replayed issues carry an area name (e.g. city or barangay)? That needs a small, attributed boundary dataset (e.g. OpenStreetMap, ODbL). Otherwise `areaName` stays `null`.
-
-## Deliverables once answered
-
-`tools/dashcam-replay` (plan/extract/replay commands with tests for distance sampling, deterministic ids and idempotent re-runs); optional `fixture` vision provider with schema-validated annotations; migration for `DASHCAM_REPLAY`; runbook steps.
+- **Local:** `plan` produced 31 frames every 7 m over 210 m. `extract` wrote 31 JPEGs at 1280×720 with no metadata.
+- **Live replay of 3 frames:** 3 registered and uploaded, and the worker marked all 3 `FAILED: PROVIDER_NOT_CONFIGURED` (correct while the secret holds the placeholder).
+- **Re-run:** 0 new records, 3 already registered, 3 already uploaded.
+- **Database:** migration `0003` applied and 17 NCR areas loaded.

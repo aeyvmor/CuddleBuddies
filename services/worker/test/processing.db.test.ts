@@ -1,6 +1,6 @@
 import pg from "pg";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { registerObservation } from "@astig/database";
+import { loadAreas, registerObservation, type AreaInput } from "@astig/database";
 import { evidenceObjectKey } from "@astig/domain";
 import { SEED, SEED_ISSUES } from "../../../database/seeds/synthetic-demo";
 import { resetAndSeed, testDatabaseUrl } from "../../../database/test/helpers";
@@ -120,6 +120,9 @@ describe("completeProcessing", () => {
   });
 
   it("creates a new issue when no same-type issue is within the radius", async () => {
+    // Area tagging: load NCR boundaries so a new issue gets its city name.
+    const ncr = (await import("../../../database/seeds/ncr-cities.json")).default;
+    await tx(() => loadAreas(client, ncr.source, ncr.areas as AreaInput[]));
     const far = await newObservation(14.66, 121.06);
     await tx(() => beginProcessing(client, far));
     const r1 = await tx(() => completeProcessing(client, far, { kind: "DETECTION", detection: detection() }));
@@ -130,8 +133,8 @@ describe("completeProcessing", () => {
     await tx(() => beginProcessing(client, other));
     const r2 = await tx(() => completeProcessing(client, other, { kind: "DETECTION", detection: detection({ issueType: "ROAD_DAMAGE", obstructionType: "NONE", blockagePercent: null }) }));
     expect(r2.applied && r2.issueId).not.toBe(I1.id);
-    const issue = await client.query("SELECT issue_type, is_synthetic, location_uncertainty_m FROM issues WHERE id = $1", [r2.applied ? r2.issueId : null]);
-    expect(issue.rows[0]).toEqual({ issue_type: "ROAD_DAMAGE", is_synthetic: true, location_uncertainty_m: 6 });
+    const issue = await client.query("SELECT issue_type, is_synthetic, location_uncertainty_m, area_name FROM issues WHERE id = $1", [r2.applied ? r2.issueId : null]);
+    expect(issue.rows[0]).toEqual({ issue_type: "ROAD_DAMAGE", is_synthetic: true, location_uncertainty_m: 6, area_name: "Quezon City" });
   });
 
   it("completes 'no issue' detections without creating an issue", async () => {

@@ -13,6 +13,7 @@
     "database",
     "services/api",
     "services/worker",
+    "tools/dashcam-replay",
     "infra/aws"
   ],
   "scripts": {
@@ -29,7 +30,8 @@
     "db:seed": "npm run seed -w @astig/database",
     "db:reset": "npm run reset -w @astig/database",
     "api:dev": "npm run dev -w @astig/api",
-    "cdk:synth": "npm run synth -w @astig/infra-aws"
+    "cdk:synth": "npm run synth -w @astig/infra-aws",
+    "dashcam": "npm run dashcam -w @astig/dashcam-replay --"
   },
   "devDependencies": {
     "@types/node": "22.20.5",

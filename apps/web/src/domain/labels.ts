@@ -11,6 +11,7 @@ const SAMPLING: Record<SamplingMethod, string> = {
   VIO_DISTANCE: "VIO distance",
   GPS_DISTANCE: "GPS distance",
   MANUAL: "Manual",
+  DASHCAM_REPLAY: "Dashcam replay (recorded footage)",
 };
 
 export function samplingLabel(m: SamplingMethod): string {

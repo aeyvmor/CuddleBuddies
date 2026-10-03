@@ -3,7 +3,6 @@ import type { ProcessingFailureCode } from "@astig/contracts";
 /**
  * Provider-neutral vision adapter. Implementations return the raw (untrusted) model output;
  * the ingest handler validates it against the shared Detection schema before it can persist.
- * The Gemini adapter is owned by the worker/integration owner and plugs in here.
  */
 export interface VisionProvider {
   readonly name: string;
@@ -28,8 +27,13 @@ export class NotConfiguredProvider implements VisionProvider {
   }
 }
 
-export function providerFromEnv(env: NodeJS.ProcessEnv = process.env): VisionProvider {
+export interface ProviderFactories {
+  gemini: () => VisionProvider;
+}
+
+export function providerFromEnv(env: NodeJS.ProcessEnv, factories: ProviderFactories): VisionProvider {
   const name = env.VISION_PROVIDER ?? "none";
   if (name === "none") return new NotConfiguredProvider();
+  if (name === "gemini") return factories.gemini();
   throw new Error(`Unknown VISION_PROVIDER "${name}".`);
 }

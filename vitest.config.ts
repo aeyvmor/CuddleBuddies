@@ -16,7 +16,7 @@ export default defineConfig({
       {
         test: {
           name: "unit",
-          include: ["packages/*/test/**/*.test.ts", "services/*/test/**/*.test.ts", "infra/aws/test/**/*.test.ts"],
+          include: ["packages/*/test/**/*.test.ts", "services/*/test/**/*.test.ts", "infra/aws/test/**/*.test.ts", "tools/*/test/**/*.test.ts"],
           exclude: ["**/*.db.test.ts", "**/node_modules/**"],
           // First CDK synth in a fresh worker can take >5s on slow/synced disks.
           testTimeout: 60_000,

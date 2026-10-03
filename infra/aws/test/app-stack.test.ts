@@ -86,7 +86,8 @@ describe("AppStack compute and access", () => {
     expect(inVpc).toHaveLength(4);
     const ingest = fns.find((f) => f.Properties.Environment?.Variables?.PERSIST_FUNCTION_NAME);
     expect(ingest?.Properties.VpcConfig).toBeUndefined();
-    expect(ingest?.Properties.Environment.Variables.VISION_PROVIDER).toBe("none");
+    expect(ingest?.Properties.Environment.Variables).toMatchObject({ VISION_PROVIDER: "gemini", GEMINI_MODEL: "gemini-3.8-flash" });
+    expect(JSON.stringify(ingest?.Properties.Environment.Variables)).not.toMatch(/AIza/); // no key in env
   });
 
   it("runs the API with JWT auth, never local-dev", () => {

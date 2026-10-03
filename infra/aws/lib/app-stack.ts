@@ -199,7 +199,10 @@ export class AppStack extends Stack {
       timeout: Duration.seconds(60),
       environment: {
         PERSIST_FUNCTION_NAME: persistFn.functionName,
-        VISION_PROVIDER: "none",
+        // Gemini adapter; until the secret holds a real key every image fails explicitly with
+        // PROVIDER_NOT_CONFIGURED (never a fabricated detection).
+        VISION_PROVIDER: "gemini",
+        GEMINI_MODEL: String(this.node.tryGetContext("geminiModel") ?? "gemini-3.8-flash"),
         VISION_SECRET_ARN: visionSecret.secretArn,
       },
     });

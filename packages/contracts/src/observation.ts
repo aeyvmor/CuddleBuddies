@@ -6,9 +6,9 @@ export type SessionStatus = z.infer<typeof SessionStatus>;
 
 /**
  * How the capture trigger estimated travelled distance. Surfaced so GPS-delta sampling is never
- * presented as VIO. [gap: pending team approval]
+ * presented as VIO, and replayed dashcam frames are never presented as live on-device sampling.
  */
-export const SamplingMethod = z.enum(["VIO_DISTANCE", "GPS_DISTANCE", "MANUAL"]);
+export const SamplingMethod = z.enum(["VIO_DISTANCE", "GPS_DISTANCE", "MANUAL", "DASHCAM_REPLAY"]);
 export type SamplingMethod = z.infer<typeof SamplingMethod>;
 
 export const ProcessingStatus = z.enum(["PENDING", "PROCESSING", "COMPLETED", "FAILED"]);

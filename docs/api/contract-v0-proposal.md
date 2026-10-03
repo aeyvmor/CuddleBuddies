@@ -150,6 +150,8 @@ Additions since the first draft:
 - **Upload URL:** `POST /upload-url` with `{ observationId, contentType: "image/jpeg", contentLengthBytes ≤ 10 MiB }` returns `{ method: "PUT", url, headers, expiresAt }`. The URL lasts 5 minutes, and both content-type and exact length are signed. The client must PUT with exactly those headers. `409 ALREADY_UPLOADED` means the upload is already done; treat it as success.
 - **New error codes:** `ALREADY_UPLOADED 409`, `SERVICE_UNAVAILABLE 503`.
 - **Processing failure codes:** `PROVIDER_NOT_CONFIGURED`, `PROVIDER_ERROR`, `PROVIDER_TIMEOUT`, `INVALID_MODEL_OUTPUT`, `IMAGE_TOO_LARGE`, `IMAGE_UNREADABLE`. This answers web gap G7.
+- **`samplingMethod` gains `DASHCAM_REPLAY` (approved 2026-10-04)** for frames replayed from recorded footage; the web label reads "Dashcam replay (recorded footage)".
+- **`areaName`** on new issues is set from loaded administrative boundaries (NCR cities from OpenStreetMap, ODbL). It's `null` when no boundary contains the point.
 
 Not yet implemented: `GET /observations`, resolution evidence, device/vehicle registration API (the admin Lambda can register them), a real vision provider.
 

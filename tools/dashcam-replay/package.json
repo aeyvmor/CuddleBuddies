@@ -1,0 +1,14 @@
+{
+  "name": "@astig/dashcam-replay",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Replays curated, redacted dashcam frames through the real ASTIG API as clearly labeled demo captures.",
+  "scripts": {
+    "dashcam": "tsx --env-file-if-exists=../../.env src/cli.ts"
+  },
+  "dependencies": {
+    "@astig/contracts": "0.0.0",
+    "zod": "4.6.5"
+  }
+}

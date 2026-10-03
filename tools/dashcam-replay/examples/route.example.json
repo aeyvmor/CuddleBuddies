@@ -1,0 +1,19 @@
+{
+  "name": "manila-example-01",
+  "video": "../../../demo-footage/manila-example-01.mp4",
+  "recordedStartUtc": "2026-10-03T01:15:00.000Z",
+  "locationAccuracyM": 20,
+  "notes": "EXAMPLE ONLY. Hand-traced in geojson.io; anchors read from on-screen landmarks (corner sign at 0:12, footbridge at 1:05, intersection at 2:40).",
+  "route": [
+    [120.98420, 14.60390],
+    [120.98510, 14.60455],
+    [120.98605, 14.60520],
+    [120.98700, 14.60588],
+    [120.98795, 14.60650]
+  ],
+  "anchors": [
+    { "videoSec": 12, "routeIndex": 0 },
+    { "videoSec": 65, "routeIndex": 2 },
+    { "videoSec": 160, "routeIndex": 4 }
+  ]
+}

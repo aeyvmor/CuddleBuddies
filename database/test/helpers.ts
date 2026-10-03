@@ -18,6 +18,7 @@ const TABLES = [
   "inspection_sessions",
   "vehicles",
   "devices",
+  "admin_areas",
 ];
 
 /** Empties every ASTIG table and re-inserts the deterministic synthetic seed. */
