@@ -17,6 +17,7 @@
   "dependencies": {
     "@astig/contracts": "0.0.0",
     "@astig/domain": "0.0.0",
+    "@aws-sdk/client-s3": "3.1146.0",
     "@aws-sdk/client-secrets-manager": "3.1146.0",
     "pg": "8.23.1"
   },

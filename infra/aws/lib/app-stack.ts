@@ -6,6 +6,8 @@ import { HttpJwtAuthorizer } from "aws-cdk-lib/aws-apigatewayv2-authorizers";
 import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
+import * as events from "aws-cdk-lib/aws-events";
+import * as targets from "aws-cdk-lib/aws-events-targets";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction, OutputFormat, type NodejsFunctionProps } from "aws-cdk-lib/aws-lambda-nodejs";
 import * as logs from "aws-cdk-lib/aws-logs";
@@ -209,6 +211,33 @@ export class AppStack extends Stack {
       suffix: ".jpg",
     });
 
+    // ---------------- Analytics export (QuickSight reads this bucket only) ----------------
+    const analyticsBucket = new s3.Bucket(this, "AnalyticsBucket", {
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      objectOwnership: s3.ObjectOwnership.BUCKET_OWNER_ENFORCED,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      enforceSSL: true,
+      // Aggregate, reproducible exports; empty the bucket before `cdk destroy`.
+      removalPolicy: RemovalPolicy.DESTROY,
+      lifecycleRules: [{ id: "expire-stale-exports", expiration: Duration.days(30) }],
+    });
+    // Isolated subnets have no internet route, so open egress only reaches the DB, the
+    // Secrets Manager endpoint, and S3 via the gateway endpoint.
+    const exportSg = new ec2.SecurityGroup(this, "ExportLambdaSg", { vpc, allowAllOutbound: true, description: "ASTIG analytics export" });
+    dbSg.addIngressRule(exportSg, ec2.Port.tcp(5432), "PostgreSQL from analytics export");
+    endpointSg.addIngressRule(exportSg, ec2.Port.tcp(443), "HTTPS from analytics export");
+    const exportFn = vpcFn("AnalyticsExportFunction", "database/lambda/export.ts", {
+      timeout: Duration.seconds(60),
+      securityGroups: [exportSg],
+      environment: { ANALYTICS_BUCKET: analyticsBucket.bucketName },
+    });
+    analyticsBucket.grantPut(exportFn, "analytics/*");
+    new events.Rule(this, "AnalyticsExportSchedule", {
+      description: "Refresh QuickSight analytics export",
+      schedule: events.Schedule.rate(Duration.minutes(15)),
+      targets: [new targets.LambdaFunction(exportFn, { retryAttempts: 0 })],
+    });
+
     // ---------------- HTTP API ----------------
     const authorizer = new HttpJwtAuthorizer("CognitoAuthorizer", `https://cognito-idp.${this.region}.amazonaws.com/${userPool.userPoolId}`, {
       jwtAudience: [userPoolClient.userPoolClientId],
@@ -246,5 +275,7 @@ export class AppStack extends Stack {
     new CfnOutput(this, "IngestFunctionName", { value: ingestFn.functionName });
     new CfnOutput(this, "PersistFunctionName", { value: persistFn.functionName });
     new CfnOutput(this, "VisionSecretName", { value: visionSecret.secretName });
+    new CfnOutput(this, "AnalyticsBucketName", { value: analyticsBucket.bucketName });
+    new CfnOutput(this, "AnalyticsExportFunctionName", { value: exportFn.functionName });
   }
 }

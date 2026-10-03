@@ -31,3 +31,12 @@ cdk.context.json
 .terraform/
 *.tfstate
 *.tfstate.*
+
+# Demo footage and extracted frames: never commit imagery (see docs/operations/dashcam-demo-data.md)
+demo-footage/
+tools/dashcam-replay/work/
+*.mp4
+*.mov
+*.MP4
+*.MOV
+*.gpx

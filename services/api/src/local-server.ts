@@ -29,6 +29,7 @@ const server = createServer(async (req, res) => {
   const response = await handle({
     method: req.method ?? "GET",
     path: url.pathname,
+    query: Object.fromEntries(url.searchParams),
     headers,
     body: chunks.length ? Buffer.concat(chunks).toString("utf8") : null,
     requestId: randomUUID(),

@@ -16,6 +16,8 @@ ASTIG imagery from public roads may contain identifiable people, license plates,
 
 ## Demo data checklist
 
+- [ ] Dashcam footage (Manila demo): recorded by the team, or used with the owner's written permission or a licence covering this use. Downloaded third-party videos aren't usable by default.
+- [ ] Faces and licence plates blurred in every uploaded frame; a second person checked each frame. Raw video and unredacted frames never go to Git or S3.
 - [ ] Every seeded row is clearly synthetic or approved.
 - [ ] Coordinates are in the intended demo area and do not identify a private residence.
 - [ ] Images have known rights and no unnecessary identifiable content.
