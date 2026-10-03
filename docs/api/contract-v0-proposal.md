@@ -138,6 +138,17 @@ Confidence is displayed but not multiplied into the score (keeps the formula exp
 
 ## Implemented in the first backend slice
 
-`GET /issues/{id}`, `POST /issues/{id}/work-orders`, `PATCH /work-orders/{id}` (HTTP, `OFFICER` role), plus the
-idempotent observation-registration data function (no HTTP route yet). Not yet implemented: sessions, upload URL,
-observation HTTP route, list endpoints, resolution evidence, analytics, presigned evidence GET.
+Deployed to AWS behind Cognito JWT (see `infra/aws/README.md`):
+
+- `OFFICER`: `GET /issues/{id}`, `POST /issues/{id}/work-orders`, `PATCH /work-orders/{id}`.
+- `OPERATOR`: `POST /sessions`, `PATCH /sessions/{id}`, `POST /sessions/{id}/observations`, `POST /upload-url`.
+
+Additions since the first draft:
+
+- **Sessions:** `POST /sessions` takes a client-generated `clientSessionId` (UUID) that becomes the session id. This lets the mobile app start sessions offline and retry safely. `PATCH /sessions/{id}` with `{ status: "ENDED", endedAt }`.
+- **Observation registration:** returns `{ created, observation: { id, sessionId, clientObservationId, processingStatus, isSynthetic, createdAt } }`.
+- **Upload URL:** `POST /upload-url` with `{ observationId, contentType: "image/jpeg", contentLengthBytes ≤ 10 MiB }` returns `{ method: "PUT", url, headers, expiresAt }`. The URL lasts 5 minutes, and both content-type and exact length are signed. The client must PUT with exactly those headers. `409 ALREADY_UPLOADED` means the upload is already done; treat it as success.
+- **New error codes:** `ALREADY_UPLOADED 409`, `SERVICE_UNAVAILABLE 503`.
+- **Processing failure codes:** `PROVIDER_NOT_CONFIGURED`, `PROVIDER_ERROR`, `PROVIDER_TIMEOUT`, `INVALID_MODEL_OUTPUT`, `IMAGE_TOO_LARGE`, `IMAGE_UNREADABLE`. This answers web gap G7.
+
+Not yet implemented: `GET /issues` list (web gap G1–G5), `GET /observations`, resolution evidence, analytics, device/vehicle registration API (the admin Lambda can register them), a real vision provider.

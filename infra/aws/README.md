@@ -1,56 +1,84 @@
 # AWS infrastructure (CDK, TypeScript)
 
-This is reviewable infrastructure code for the hackathon deployment. **Deployed state (2026-10-04):** the dev account in `ap-southeast-1` is CDK-bootstrapped (`CDKToolkit`), and `Astig-dev-Evidence` is deployed. Deploys use the account owner's IAM Identity Center login (`aws sso login --profile astig`); no long-lived access keys exist. Synthesizing produces a CloudFormation template locally and does not contact AWS.
+**Deployed (2026-10-04), dev account, `ap-southeast-1`:** `CDKToolkit`, `Astig-dev-Evidence`, `Astig-dev-App`. Deploys use the account owner's IAM Identity Center login (`aws sso login --profile astig`); no long-lived access keys exist. Expected cost is about **$1.05/day (~$31/month)** while the database runs. The budget alert is at $40/month.
 
-## What the code defines today
+## Endpoints for clients (not secrets)
 
-`lib/evidence-stack.ts` defines one stack, `Astig-<stage>-Evidence`, containing a single private S3 bucket for image evidence:
+| Value | |
+| --- | --- |
+| API base URL | `https://2jpf5wobhl.execute-api.ap-southeast-1.amazonaws.com` |
+| Cognito user pool ID | `ap-southeast-1_uYQoBKBkj` |
+| Cognito app client ID (public, no secret; SRP or USER_PASSWORD auth) | `7dgk8feqomk5d5q0vr81fp7m86` |
+| Allowed browser origin (CORS) | `http://localhost:5173` (add more with `-c apiCorsOrigins=a,b` and redeploy) |
 
-- All public access blocked, ACLs disabled (bucket-owner-enforced), SSE-S3 encryption, and HTTPS-only access through a bucket policy that denies non-TLS requests.
-- Objects expire after `evidenceRetentionDays` (default 30; the team still has to decide retention). Incomplete uploads are cleaned up after 1 day.
-- `RemovalPolicy.RETAIN`: deleting the stack does not delete evidence. Cleanup is a deliberate, separate step.
-- CORS is off by default. If origins are configured, it allows `PUT` only, for presigned uploads.
+Send `Authorization: Bearer <Cognito access or ID token>`. Roles come from Cognito groups `OFFICER` and `OPERATOR`. Self sign-up is off, so the account owner creates users.
 
-It deliberately leaves out RDS, VPC/NAT, Lambda, API Gateway, and Cognito until the database connectivity plan, auth choice, and cost are agreed. Expected cost of this stack alone at demo scale is S3 storage and requests, a few cents. Check the [AWS Pricing Calculator](https://calculator.aws/) for your region before deploying.
+## What is deployed
+
+`Astig-dev-Evidence` (`lib/evidence-stack.ts`) holds the private evidence bucket:
+- Public access is fully blocked, encryption is SSE-S3, and only HTTPS requests are allowed.
+- Images expire after 30 days.
+- The bucket is retained if the stack is deleted.
+
+`Astig-dev-App` (`lib/app-stack.ts`) is shaped to keep costs down:
+
+| Piece | Design |
+| --- | --- |
+| Network | VPC with 2 isolated subnets only. **No NAT gateway, internet gateway, or public IP.** S3 gateway endpoint (free); one Secrets Manager interface endpoint in one AZ |
+| Database | RDS PostgreSQL 17.11 + PostGIS 3.5, `db.t4g.micro`, 20 GB gp3, single-AZ, encrypted, **not public**. Port 5432 is reachable only from the VPC Lambda security group. TLS is verified using the runtime CA bundle |
+| Secrets | RDS-managed master secret, plus `VisionProviderApiKey`, a placeholder for the worker owner to set in the console |
+| Auth | Cognito user pool (Lite plan, no self sign-up), groups `OFFICER`/`OPERATOR`. HTTP API JWT authorizer on all routes except the CORS-preflight-only `OPTIONS` route. Throttled to 20 req/s, burst 40 |
+| Lambdas (Node 22, arm64, 7-day logs) | `Api`, `Persist`, `Admin` run inside the VPC. `Ingest` runs outside the VPC so it can reach the vision provider, and calls `Persist` for database writes |
+| Processing trigger | S3 `ObjectCreated` on `sessions/*.jpg` → `Ingest` → `Persist` |
+
+## Operating it (owner)
+
+Run from `infra/aws` with Node 24 after `aws sso login --profile astig` (sessions last 8 hours):
+
+```text
+set AWS_PROFILE=astig
+npx cdk diff  -c account=<id> -c region=ap-southeast-1      # preview
+npx cdk deploy --all -c account=<id> -c region=ap-southeast-1
+```
+
+The database is private, so schema and data operations go through the admin Lambda (name in the stack output `AdminFunctionName`). Payloads: `{"action":"migrate"}`, `{"action":"seed"}`, `{"action":"status"}`, `{"action":"register-device","label":"Team phone 1"}`, `{"action":"register-vehicle","label":"Team car 1"}`. Labels are equipment names, never people's names. There's no reset action on purpose.
+
+```text
+aws lambda invoke --function-name <AdminFunctionName> --payload fileb://payload.json out.json
+```
+
+Create an officer (PowerShell; Cognito emails a temporary password):
+
+```text
+aws cognito-idp admin-create-user --user-pool-id ap-southeast-1_uYQoBKBkj --username <name> --user-attributes Name=email,Value=<email> Name=email_verified,Value=true
+aws cognito-idp admin-add-user-to-group --user-pool-id ap-southeast-1_uYQoBKBkj --username <name> --group-name OFFICER
+```
+
+**Save money:** stop the database when nobody is working (`aws rds stop-db-instance --db-instance-identifier <id>`); only storage is billed (~$0.09/day). AWS restarts it automatically after 7 days. Start it with `start-db-instance` about 5 minutes before you need it.
+
+## Verified after deploy (2026-10-04)
+
+- Migrations applied and synthetic seed loaded. `status` shows migrations `0001` and PostGIS 3.5.6.
+- Login: a request without a token gets `401`. With a Cognito token, `GET /issues/{seed}` returns `200`, score 42.25, evidence `AVAILABLE` (presigned).
+- Capture path: `POST /sessions` → `201`; register observation → `201 PENDING`; `POST /upload-url` → presigned PUT.
+- S3 rejects a PUT with the wrong length (`403`) and accepts the correct one (`200`).
+- The worker recorded the uploaded image as `FAILED: PROVIDER_NOT_CONFIGURED`. This is the expected honest result until a vision provider is connected.
+- An invalid work-order transition returns `409`. CORS preflight from `localhost:5173` returns `204` with allow-origin; a foreign origin gets no allow-origin header.
+- The temporary smoke-test user was deleted.
+
+## Known limitations
+
+- The Lambdas use the RDS master user. A least-privilege app role is a follow-up.
+- New accounts have a Lambda concurrency limit of 10. Request an increase through Service Quotas if uploads queue up.
+- There's no CloudWatch alarm yet. Processing failures are visible as `FAILED` observations and in the `Ingest` logs.
+- Vision provider: `VISION_PROVIDER=none`. The worker owner adds a Gemini adapter in `services/worker/src/provider.ts`, sets the secret, and changes the env var.
+
+## Teardown (after judging)
+
+1. `npx cdk destroy Astig-dev-App`. This deletes the database without a snapshot; the data is synthetic and can be re-seeded.
+2. Empty and delete the evidence bucket (it is retained by design), then `npx cdk destroy Astig-dev-Evidence`.
+3. Delete the `CDKToolkit` stack in CloudFormation, if nothing else uses it.
 
 ## Local checks (no AWS access needed)
 
-```text
-npm test                                                           # includes CDK assertion tests
-cd infra/aws
-npx cdk synth -c account=111111111111 -c region=ap-southeast-1     # placeholder account; prints the template
-```
-
-The app refuses to synthesize unless you pass `account` and `region` explicitly, so it can never target whatever credentials happen to be active.
-
-## Learning path: what to do in AWS, in order
-
-Do steps 1–3 before any deploy. Steps 1–2 are read-only.
-
-1. **Sign in with your own named identity, not root.** Ask the account owner for IAM Identity Center (SSO) access, or an individually assigned role with MFA. Don't create or paste long-lived access keys. *Why:* root and shared keys can't be scoped or audited, and leaked keys are a common way accounts get compromised.
-
-2. **Open CloudShell and confirm where you are.** In the Console, click the CloudShell icon (`>_`) in the top bar. CloudShell is a browser terminal that already uses your signed-in identity. Then run:
-
-   ```bash
-   aws sts get-caller-identity     # who am I? shows the Account ID and the role/user ARN
-   aws configure get region        # which region will commands go to? (may be blank)
-   echo $AWS_REGION                # CloudShell's region, matching the Console's region selector
-   ```
-
-   Compare the Account ID with the team's development account. If it is unexpected, stop and ask the account owner. *Why:* every create or deploy command acts on this account and region.
-
-3. **Ask the account owner to confirm budget and permissions.** They should set an AWS Budget with an email alert (Billing → Budgets), confirm your role may deploy CloudFormation/CDK stacks in the agreed region, and record a cleanup date. *Why:* billing alerts catch forgotten resources, and least privilege limits mistakes.
-
-4. **Review the template together.** Run `npx cdk synth` with the real account ID and region, then read the YAML. It should contain exactly one bucket and one bucket policy. When credentials are available, `npx cdk diff` shows what would change before anything happens.
-
-5. **Bootstrap once, but only after approval.** `npx cdk bootstrap aws://<account>/<region>` creates the `CDKToolkit` stack: a staging S3 bucket, an ECR repository, and IAM roles. It is low-cost but it does create resources. Needs explicit approval of account, region, and cost.
-
-6. **Deploy, but only after approval.** `npx cdk deploy -c account=<id> -c region=<region>`. CDK shows IAM and security changes and asks before applying them. Afterwards, check the bucket in the S3 console under Permissions: "Block all public access" should be on.
-
-7. **Clean up after the event.** Empty the bucket, delete it (it is retained by design), then delete the stack. Remove the CDKToolkit stack too if nothing else uses it.
-
-Running CDK requires Node 24 and either `npx` (the CLI is pinned in `package.json`) or deploy credentials from CloudShell. Don't copy static keys into Codespaces.
-
-## Next infrastructure, pending team decisions
-
-API Gateway HTTP API + Lambda (`services/api/src/lambda.ts`), a JWT authorizer, the worker Lambda triggered by S3 events (or SQS with a DLQ), RDS PostgreSQL with PostGIS, and the network path to reach it (Lambda in a VPC without NAT, or RDS Proxy, needs a decision), Secrets Manager, and CloudWatch alarms. Coordinate the upload-URL and worker interfaces with the integration owner before adding them.
+`npm test` includes CDK assertion tests: no NAT, private DB, one interface endpoint, JWT on every non-preflight route, and ingest outside the VPC. The app refuses to synthesize without explicit `-c account=` and `-c region=`.

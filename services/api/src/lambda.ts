@@ -29,6 +29,9 @@ async function buildHandler(): Promise<ReturnType<typeof createApp>> {
 
 /** Lambda entry point for API Gateway HTTP API with a JWT (Cognito) authorizer. */
 export async function lambdaHandler(event: HttpApiEventV2): Promise<ApiResponse> {
+  // CORS preflight arrives on the unauthenticated OPTIONS route. Answer it without touching
+  // auth or data; API Gateway adds the configured CORS headers.
+  if (event.requestContext.http.method === "OPTIONS") return { statusCode: 204, headers: {}, body: "" };
   handlerPromise ??= buildHandler().catch((err) => {
     handlerPromise = undefined; // retry initialization on the next request instead of caching failure
     throw err;

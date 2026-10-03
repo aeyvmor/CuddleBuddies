@@ -1,7 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { CfnOutput, Duration, RemovalPolicy, SecretValue, Stack, Tags, type StackProps } from "aws-cdk-lib";
-import { CorsHttpMethod, HttpApi, type CfnStage } from "aws-cdk-lib/aws-apigatewayv2";
+import { CorsHttpMethod, HttpApi, HttpMethod, HttpNoneAuthorizer, type CfnStage } from "aws-cdk-lib/aws-apigatewayv2";
 import { HttpJwtAuthorizer } from "aws-cdk-lib/aws-apigatewayv2-authorizers";
 import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import * as cognito from "aws-cdk-lib/aws-cognito";
@@ -226,6 +226,15 @@ export class AppStack extends Stack {
     });
     const stage = httpApi.defaultStage!.node.defaultChild as CfnStage;
     stage.defaultRouteSettings = { throttlingRateLimit: 20, throttlingBurstLimit: 40 };
+    // The JWT-protected $default route also catches OPTIONS, and browsers send CORS preflights
+    // without a token. This unauthenticated route only answers preflights (the Lambda returns 204
+    // for OPTIONS without touching data); every other method still requires a valid JWT.
+    httpApi.addRoutes({
+      path: "/{proxy+}",
+      methods: [HttpMethod.OPTIONS],
+      integration: new HttpLambdaIntegration("PreflightIntegration", apiFn),
+      authorizer: new HttpNoneAuthorizer(),
+    });
 
     Tags.of(this).add("project", "astig");
     Tags.of(this).add("stage", props.stage);

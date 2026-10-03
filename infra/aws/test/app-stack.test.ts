@@ -72,11 +72,13 @@ describe("AppStack compute and access", () => {
     expect(api?.Properties.Environment.Variables).toMatchObject({ ASTIG_AUTH_MODE: "jwt", NODE_ENV: "production", NODE_EXTRA_CA_CERTS: "/var/runtime/ca-cert.pem" });
   });
 
-  it("protects every API route with the Cognito JWT authorizer and throttles the stage", () => {
+  it("protects every non-preflight API route with the Cognito JWT authorizer and throttles the stage", () => {
     t.hasResourceProperties("AWS::ApiGatewayV2::Authorizer", { AuthorizerType: "JWT" });
     const routes = resources("AWS::ApiGatewayV2::Route");
-    expect(routes.length).toBeGreaterThan(0);
-    for (const r of routes) expect(r.Properties.AuthorizationType).toBe("JWT");
+    const open = routes.filter((r) => r.Properties.AuthorizationType !== "JWT");
+    // Only the CORS preflight route is unauthenticated, and it accepts OPTIONS only.
+    expect(open.map((r) => r.Properties.RouteKey)).toEqual(["OPTIONS /{proxy+}"]);
+    expect(routes.filter((r) => r.Properties.AuthorizationType === "JWT").map((r) => r.Properties.RouteKey)).toEqual(["$default"]);
     t.hasResourceProperties("AWS::ApiGatewayV2::Stage", { DefaultRouteSettings: { ThrottlingRateLimit: 20, ThrottlingBurstLimit: 40 } });
   });
 
