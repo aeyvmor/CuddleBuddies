@@ -1,6 +1,6 @@
 # Demo data from Manila dashcam footage
 
-Status: **implemented and verified end to end on AWS (2026-10-04)** with a synthetic test video. Waiting for the team's footage and the Gemini key.
+Status: **implemented and verified end to end on AWS (2026-10-04)**, including live Gemini, with a synthetic test video. Waiting for the team's footage.
 
 Decisions (2026-10-04):
 - The footage is **team-recorded**.
@@ -47,6 +47,7 @@ team dashcam video ─► trace route + anchors ─► plan (frame every 7 m) �
 
 ## Verified (2026-10-04, synthetic test pattern, not footage)
 
+- **Gemini live:** model `gemini-3.1-flash-lite`, the lower-cost choice: $0.25 per 1M input tokens and $1.50 per 1M output tokens on the paid tier (Google pricing page, 2026-10-04). A test-pattern frame went API → S3 → worker → Gemini and was saved as a valid detection (`COMPLETED`, "infrastructure not visible", no issue created). Each call took about 1.2–1.6 s.
 - **Local:** `plan` produced 31 frames every 7 m over 210 m. `extract` wrote 31 JPEGs at 1280×720 with no metadata.
 - **Live replay of 3 frames:** 3 registered and uploaded, and the worker marked all 3 `FAILED: PROVIDER_NOT_CONFIGURED` (correct while the secret holds the placeholder).
 - **Re-run:** 0 new records, 3 already registered, 3 already uploaded.

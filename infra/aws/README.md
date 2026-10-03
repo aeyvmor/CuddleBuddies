@@ -89,7 +89,7 @@ aws cognito-idp admin-add-user-to-group --user-pool-id ap-southeast-1_uYQoBKBkj 
 - The Lambdas use the RDS master user. A least-privilege app role is a follow-up.
 - New accounts have a Lambda concurrency limit of 10. Request an increase through Service Quotas if uploads queue up.
 - There's no CloudWatch alarm yet. Processing failures are visible as `FAILED` observations and in the `Ingest` logs.
-- Vision provider: `VISION_PROVIDER=gemini` (model `gemini-3.8-flash`, override with `-c geminiModel=...`). Until the `VisionProviderApiKey` secret holds a real key, every image fails with `PROVIDER_NOT_CONFIGURED`. See `docs/operations/dashcam-demo-data.md` step 1.
+- Vision provider: `VISION_PROVIDER=gemini` (model `gemini-3.1-flash-lite`, override with `-c geminiModel=...`). Until the `VisionProviderApiKey` secret holds a real key, every image fails with `PROVIDER_NOT_CONFIGURED`. See `docs/operations/dashcam-demo-data.md` step 1.
 
 ## Teardown (after judging)
 

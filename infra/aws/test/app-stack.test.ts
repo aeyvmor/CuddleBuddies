@@ -86,7 +86,7 @@ describe("AppStack compute and access", () => {
     expect(inVpc).toHaveLength(4);
     const ingest = fns.find((f) => f.Properties.Environment?.Variables?.PERSIST_FUNCTION_NAME);
     expect(ingest?.Properties.VpcConfig).toBeUndefined();
-    expect(ingest?.Properties.Environment.Variables).toMatchObject({ VISION_PROVIDER: "gemini", GEMINI_MODEL: "gemini-3.8-flash" });
+    expect(ingest?.Properties.Environment.Variables).toMatchObject({ VISION_PROVIDER: "gemini", GEMINI_MODEL: "gemini-3.1-flash-lite" });
     expect(JSON.stringify(ingest?.Properties.Environment.Variables)).not.toMatch(/AIza/); // no key in env
   });
 
