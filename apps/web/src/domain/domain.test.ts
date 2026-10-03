@@ -1,28 +1,63 @@
 import { describe, expect, it } from "vitest";
-import { filterIssues } from "./filters";
+import { IssueDetailResponse } from "@astig/contracts";
+import { filterIssues, highestSeverity } from "./filters";
 import { isValidTransition, nextWorkOrderStatus } from "./workOrder";
 import { projectPoints } from "./projection";
-import { createSyntheticIssues } from "../data/syntheticData";
+import { createSyntheticIssues, SYNTHETIC_ISSUE_IDS } from "../data/syntheticData";
+import type { IssueListItem } from "../api/types";
+
+const details = createSyntheticIssues();
+const items: IssueListItem[] = details.map((d) => ({
+  issue: d.issue,
+  severity: highestSeverity(d.observations),
+  totalScore: d.riskAssessment?.totalScore ?? null,
+  workOrderStatus: d.workOrders[0]?.status ?? null,
+}));
+const [I1, I2, I3, I4] = SYNTHETIC_ISSUE_IDS;
+
+describe("synthetic data", () => {
+  it("conforms to the shared IssueDetailResponse contract", () => {
+    for (const d of details) {
+      const r = IssueDetailResponse.safeParse(d);
+      expect(r.success, r.success ? "" : JSON.stringify(r.error.issues[0])).toBe(true);
+    }
+  });
+
+  it("is labelled synthetic at issue and observation level", () => {
+    for (const d of details) {
+      expect(d.issue.isSynthetic).toBe(true);
+      for (const o of d.observations) expect(o.isSynthetic).toBe(true);
+    }
+  });
+});
 
 describe("filterIssues", () => {
-  const issues = createSyntheticIssues();
-
   it("returns everything with no filters", () => {
-    expect(filterIssues(issues, {})).toHaveLength(issues.length);
+    expect(filterIssues(items, {})).toHaveLength(items.length);
   });
 
   it("filters by severity, type and area together", () => {
-    const r = filterIssues(issues, { severity: "HIGH", issue_type: "BLOCKED_DRAIN", area_name: "Demo Zone A" });
-    expect(r.map((i) => i.id)).toEqual(["SYN-ISSUE-001"]);
+    const r = filterIssues(items, { severity: "HIGH", issueType: "BLOCKED_DRAIN", areaName: "Demo Zone A" });
+    expect(r.map((i) => i.issue.id)).toEqual([I1]);
   });
 
   it("filters issues without a work order via NONE", () => {
-    const r = filterIssues(issues, { work_order_status: "NONE" });
-    expect(r.map((i) => i.id)).toEqual(["SYN-ISSUE-001", "SYN-ISSUE-003"]);
+    expect(filterIssues(items, { workOrderStatus: "NONE" }).map((i) => i.issue.id)).toEqual([I1, I3]);
   });
 
   it("filters by work order status", () => {
-    expect(filterIssues(issues, { work_order_status: "RESOLVED" }).map((i) => i.id)).toEqual(["SYN-ISSUE-004"]);
+    expect(filterIssues(items, { workOrderStatus: "RESOLVED" }).map((i) => i.issue.id)).toEqual([I4]);
+    expect(filterIssues(items, { workOrderStatus: "IN_PROGRESS" }).map((i) => i.issue.id)).toEqual([I2]);
+  });
+});
+
+describe("highestSeverity", () => {
+  it("takes the highest estimate and ignores failed observations", () => {
+    expect(highestSeverity(details[0]!.observations)).toBe("HIGH");
+  });
+
+  it("is null when nothing was detected", () => {
+    expect(highestSeverity([])).toBeNull();
   });
 });
 

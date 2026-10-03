@@ -1,36 +1,79 @@
+.section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+}
+
+.heading {
+  composes: sectionTitle from "../styles/primitives.module.css";
+  padding: var(--space-4) var(--space-5) var(--space-2);
+}
+
 .list {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+}
+
+.list li + li {
+  border-top: 1px solid var(--color-border);
 }
 
 .item {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-1);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-1) var(--space-4);
+  align-items: start;
   width: 100%;
-  padding: var(--space-3);
+  padding: var(--space-4) var(--space-5);
   text-align: left;
   color: var(--color-text);
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-2);
+  border: 0;
+  border-left: 4px solid transparent;
   cursor: pointer;
 }
 
-.item[aria-pressed="true"] {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px var(--color-accent);
+.item:hover {
+  background: var(--color-surface-muted);
 }
 
-.title { font-weight: 600; }
-.meta { font-size: var(--font-size-1); color: var(--color-text-muted); }
-.sev { font-weight: 700; }
-.sev[data-severity="LOW"] { color: var(--color-severity-low); }
-.sev[data-severity="MEDIUM"] { color: var(--color-severity-medium); }
-.sev[data-severity="HIGH"] { color: var(--color-severity-high); }
-.sev[data-severity="CRITICAL"] { color: var(--color-severity-critical); }
+.item[aria-pressed="true"] {
+  background: var(--color-surface-mint);
+  border-left-color: var(--color-accent);
+}
+
+.score {
+  composes: pill from "../styles/primitives.module.css";
+  grid-row: span 3;
+  min-width: 3.5rem;
+  justify-content: center;
+  font-size: var(--font-size-body-md);
+  color: var(--color-text);
+  background: var(--color-surface-muted);
+}
+
+.title {
+  font-size: var(--font-size-headline-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.sev {
+  composes: sevPill from "../styles/primitives.module.css";
+}
+
+.status {
+  composes: statusPill from "../styles/primitives.module.css";
+}
+
+.meta {
+  composes: muted from "../styles/primitives.module.css";
+}

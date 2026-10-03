@@ -1,0 +1,108 @@
+/* Shared visual primitives composed by component CSS Modules (`composes:`). Tokens only. */
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-1);
+  padding: var(--space-4) var(--space-5);
+}
+
+.sectionTitle {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-headline-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.muted {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body-sm);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-label-sm);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.03em;
+  line-height: var(--line-height-tight);
+  white-space: nowrap;
+}
+
+/* Severity pill. The dot is decorative; the text label always carries the meaning. */
+.sevPill {
+  composes: pill;
+  color: var(--color-sev-low-fg);
+  background: var(--color-sev-low-bg);
+}
+.sevPill::before {
+  content: "";
+  width: var(--size-dot);
+  height: var(--size-dot);
+  border-radius: var(--radius-pill);
+  background: var(--color-sev-low-dot);
+}
+.sevPill[data-severity="CRITICAL"] { color: var(--color-sev-critical-fg); background: var(--color-sev-critical-bg); }
+.sevPill[data-severity="CRITICAL"]::before { background: var(--color-sev-critical-dot); }
+.sevPill[data-severity="HIGH"] { color: var(--color-sev-high-fg); background: var(--color-sev-high-bg); }
+.sevPill[data-severity="HIGH"]::before { background: var(--color-sev-high-dot); }
+.sevPill[data-severity="MODERATE"] { color: var(--color-sev-moderate-fg); background: var(--color-sev-moderate-bg); }
+.sevPill[data-severity="MODERATE"]::before { background: var(--color-sev-moderate-dot); }
+
+/* Status pill (issue or work order). Text label always present. */
+.statusPill {
+  composes: pill;
+  color: var(--color-status-open-fg);
+  background: var(--color-status-open-bg);
+}
+.statusPill[data-status="IN_PROGRESS"] { color: var(--color-status-progress-fg); background: var(--color-status-progress-bg); }
+.statusPill[data-status="RESOLVED"] { color: var(--color-status-resolved-fg); background: var(--color-status-resolved-bg); }
+
+.buttonPrimary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--size-touch);
+  padding: var(--space-2) var(--space-5);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  font-size: var(--font-size-body-md);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+.buttonPrimary:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.control {
+  min-height: var(--size-touch);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: var(--font-weight-regular);
+}

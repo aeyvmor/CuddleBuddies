@@ -1,8 +1,90 @@
-.section h3 { margin: 0 0 var(--space-2); font-size: var(--font-size-3); }
-.note { margin: 0 0 var(--space-2); font-size: var(--font-size-1); color: var(--color-text-muted); }
-.table { width: 100%; border-collapse: collapse; }
-.table th, .table td {
-  padding: var(--space-2);
+.section {
+  composes: card from "../styles/primitives.module.css";
+}
+
+.heading {
+  composes: sectionTitle from "../styles/primitives.module.css";
+}
+
+.total {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+}
+
+.totalValue {
+  font-size: calc(var(--font-size-headline-lg) * 1.5);
+  font-weight: var(--font-weight-heavy);
+  letter-spacing: -0.02em;
+}
+
+.totalMax {
+  font-size: var(--font-size-headline-sm);
+  color: var(--color-text-muted);
+}
+
+.note {
+  composes: muted from "../styles/primitives.module.css";
+  margin: var(--space-3) 0;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-body-md);
+}
+
+.table th,
+.table td {
+  padding: var(--space-2) var(--space-1);
   text-align: left;
+  vertical-align: top;
   border-bottom: 1px solid var(--color-border);
+}
+
+.table thead th {
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.points {
+  white-space: nowrap;
+  font-weight: var(--font-weight-semibold);
+}
+
+.unknown {
+  font-style: italic;
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-muted);
+}
+
+/* Decorative bar; the points text is the accessible value. */
+.bar {
+  display: block;
+  height: var(--size-bar);
+  margin-top: var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--color-bar-track);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--color-bar-fill);
+}
+
+.barUnknown {
+  composes: bar;
+  background: repeating-linear-gradient(45deg, var(--color-bar-track) 0 4px, var(--color-surface) 4px 8px);
+}
+
+.rationale {
+  composes: muted from "../styles/primitives.module.css";
 }

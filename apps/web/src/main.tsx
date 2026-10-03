@@ -4,11 +4,11 @@ import "./styles/tokens.css";
 import "./styles/global.css";
 import { App } from "./App";
 import { createMockApi } from "./api/mockClient";
-import type { ActorRole } from "./api/types";
+import type { Role } from "./api/types";
 
-/** Mock API wiring. Replace with the HTTP client once the contract is frozen. */
+/** Mock API wiring. Replace with the HTTP client once the list route exists. */
 function Root() {
-  const [role, setRole] = useState<ActorRole>("VIEWER");
+  const [role, setRole] = useState<Role>("OPERATOR");
   const roleRef = useRef(role);
   roleRef.current = role;
   const api = useMemo(() => createMockApi({ getRole: () => roleRef.current }), []);
