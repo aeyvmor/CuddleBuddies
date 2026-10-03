@@ -110,6 +110,13 @@ describe("sign-in", () => {
     await user.type(screen.getByLabelText("New password"), "short");
     await user.type(screen.getByLabelText("Confirm new password"), "short");
     await user.keyboard("{Enter}");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Use at least 12 characters.");
+    // Long enough, but rejected by the pool's policy (no digit): Cognito's refusal is explained.
+    await user.clear(screen.getByLabelText("New password"));
+    await user.clear(screen.getByLabelText("Confirm new password"));
+    await user.type(screen.getByLabelText("New password"), "OnlyLettersHere");
+    await user.type(screen.getByLabelText("Confirm new password"), "OnlyLettersHere");
+    await user.keyboard("{Enter}");
     expect(await screen.findByRole("alert")).toHaveTextContent(/password rules/);
   });
 

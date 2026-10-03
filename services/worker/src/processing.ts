@@ -146,11 +146,12 @@ export async function completeProcessing(
   const d = parsed.data;
   await db.query(
     `INSERT INTO detections (observation_id, schema_version, infrastructure_visible, issue_type, obstruction_type,
-       blockage_percent, severity_estimate, confidence, evidence_description, requires_human_review, model_version)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       blockage_percent, severity_estimate, confidence, evidence_description, requires_human_review, model_version, regions)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
      ON CONFLICT (observation_id) DO NOTHING`,
     [o.id, d.schemaVersion, d.infrastructureVisible, d.issueType, d.obstructionType, d.blockagePercent,
-      d.severityEstimate, d.confidence, d.evidenceDescription, d.requiresHumanReview, d.modelVersion],
+      d.severityEstimate, d.confidence, d.evidenceDescription, d.requiresHumanReview, d.modelVersion,
+      d.regions?.length ? JSON.stringify(d.regions) : null],
   );
 
   let issueId: string | null = null;

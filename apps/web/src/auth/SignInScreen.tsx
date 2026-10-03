@@ -107,13 +107,17 @@ export function SignInScreen(props: {
             <h1 ref={titleRef} tabIndex={-1} className={styles.title}>
               Set a new password
             </h1>
-            <p className={styles.muted}>This account must choose a new password before its first sign-in.</p>
+            <p className={styles.muted}>
+              This account must choose a new password before its first sign-in: at least 12 characters, with upper- and lower-case letters and a
+              digit.
+            </p>
             <form
               className={styles.form}
               aria-label="Set a new password"
               onSubmit={(e) =>
                 void submit(e, async () => {
                   if (!newPassword) throw new Error("Enter a new password.");
+                  if (newPassword.length < 12) throw new Error("Use at least 12 characters.");
                   if (newPassword !== confirm) throw new Error("The two passwords do not match.");
                   try {
                     await props.onNewPassword(newPassword);

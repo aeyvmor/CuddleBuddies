@@ -70,7 +70,8 @@ describe("keyboard path: review an issue, create a work order, resolve it", () =
     expect(within(wo).getByRole("listitem", { current: "step" })).toHaveTextContent("Resolved");
     expect(within(wo).queryByRole("button", { name: /^Mark/ })).not.toBeInTheDocument();
     expect(within(wo).queryByRole("button", { name: "Create work order" })).not.toBeInTheDocument();
-  });
+    // Long by design (Tab through the whole page, including the map's controls): about 4.5 s, so the 5 s default is too tight under load.
+  }, 20000);
 
   it("can open an issue from a map marker with the keyboard", async () => {
     const user = userEvent.setup();

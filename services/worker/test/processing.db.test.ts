@@ -165,3 +165,13 @@ describe("completeProcessing", () => {
     expect(await status(key)).toMatchObject({ processing_error_code: "INVALID_MODEL_OUTPUT" });
   });
 });
+
+describe("detection regions persistence", () => {
+  it("stores AI-estimated regions with the detection", async () => {
+    const key = await newObservation(14.67, 121.07);
+    await tx(() => beginProcessing(client, key));
+    await tx(() => completeProcessing(client, key, { kind: "DETECTION", detection: detection({ regions: [{ label: "BLOCKED_DRAIN", box: [825, 535, 865, 585] }] }) }));
+    const r = await client.query("SELECT d.regions FROM detections d JOIN observations o ON o.id = d.observation_id WHERE o.image_object_key = $1", [key]);
+    expect(r.rows[0].regions).toEqual([{ label: "BLOCKED_DRAIN", box: [825, 535, 865, 585] }]);
+  });
+});

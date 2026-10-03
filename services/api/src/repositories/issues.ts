@@ -41,6 +41,7 @@ function mapDetection(r: Row): Detection | null {
     evidenceDescription: r.evidence_description,
     requiresHumanReview: r.requires_human_review,
     modelVersion: r.model_version,
+    ...(Array.isArray(r.regions) && r.regions.length ? { regions: r.regions } : {}),
   };
 }
 
@@ -87,7 +88,7 @@ export async function getIssueDetail(
             o.image_object_key, o.image_uploaded_at,
             d.id AS detection_id, d.schema_version AS d_schema_version, d.infrastructure_visible,
             d.issue_type AS d_issue_type, d.obstruction_type, d.blockage_percent, d.severity_estimate,
-            d.confidence, d.evidence_description, d.requires_human_review, d.model_version
+            d.confidence, d.evidence_description, d.requires_human_review, d.model_version, d.regions
        FROM observations o
        LEFT JOIN detections d ON d.observation_id = o.id
       WHERE o.issue_id = $1

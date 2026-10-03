@@ -1,3 +1,4 @@
+import type { DetectionRegion } from "@astig/contracts";
 import type { EvidenceAccess, IssueObservation } from "../api/types";
 import { formatUtc, label, samplingLabel } from "../domain/labels";
 import { DemoBadge } from "./DemoBadge";
@@ -12,7 +13,7 @@ export const evidenceImageClasses = {
   retryButton: styles.retryButton,
 };
 
-function Frame(props: { evidence: EvidenceAccess; alt: string; retry: ImageRetry; onReload: () => void }) {
+function Frame(props: { evidence: EvidenceAccess; alt: string; retry: ImageRetry; onReload: () => void; regions?: DetectionRegion[] }) {
   return <EvidenceImage {...props} classes={evidenceImageClasses} />;
 }
 
@@ -27,7 +28,13 @@ function ObservationCard({ o, retry, onReload }: { o: IssueObservation; retry: I
       </p>
       {/* Capture frame: the image when access is granted, otherwise an explicit reason. Never a stand-in photo. */}
       <div className={styles.frame}>
-        <Frame evidence={o.evidence} alt={d?.evidenceDescription ?? "Captured evidence image"} retry={retry} onReload={onReload} />
+        <Frame
+          evidence={o.evidence}
+          alt={d?.evidenceDescription ?? "Captured evidence image"}
+          regions={d?.regions}
+          retry={retry}
+          onReload={onReload}
+        />
         <p className={styles.meta}>
           <span className={styles.chip}>
             <span className={styles.coords}>

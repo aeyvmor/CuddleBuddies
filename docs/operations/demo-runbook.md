@@ -4,18 +4,19 @@
 
 "A vehicle that's already driving through the city records the street. ASTIG turns that footage into geolocated evidence of a blocked drain, explains why it matters, and lets an officer act on it, with the officer always in control."
 
-## What's loaded (2026-10-04)
+## What's loaded (2026-10-04, after a full `reset-demo ALL` and re-replay at 07:40)
 
 | Data | Source | Label in the UI |
 | --- | --- | --- |
-| **BLOCKED_DRAIN, Manila** (Claveria St, Binondo): 2 observations, 40–75% blockage, score 13.75 of 55 measurable points | Real TFH TV dashcam footage (friend's channel, used with written permission), replayed through the live pipeline; **Gemini result is live** | `isSynthetic` (demo replay), sampling "Dashcam replay", ±30 m |
-| 32 other Binondo + C5/Katipunan frames | Same footage; Gemini found no issue | `COMPLETED` in the processing counts |
-| 3 seeded issues in "Demo Area A (synthetic)" (one open work order, one resolved) | Synthetic seed | Demo badge, `SYNTHETIC:` text |
+| **BLOCKED_DRAIN, Manila** (Claveria/Poblete, Binondo): 5 observations, red **AI-estimated boxes** on the curb drain | Real TFH TV dashcam footage (friend's channel, written permission), replayed through the live pipeline; **Gemini result is live** | demo replay, "Dashcam replay", ±30 m |
+| **2 × STANDING_WATER, Quezon City** (Katipunan/C5) with boxes | Same footage (C5 clip); live Gemini | positions simulated, ±100 m |
+| 3 seeded issues in "Demo Area A (synthetic)" | Synthetic seed, labelled placeholder images | Demo badge, `SYNTHETIC` |
 
+Gemini output varies from run to run: re-running the replay can change which frames are flagged. Boxes are **approximate, advisory** regions from a language model, not a trained detector.
 ## Happy path (about 4 minutes)
 
 1. **Map:** open `https://astig-xi.vercel.app` and sign in as `demo-officer`. Point out the demo-data badge.
-2. **Issue:** open the **Manila blocked drain**. Show:
+2. **Issue:** open the **Manila blocked drain**. Show the red AI-estimated boxes on the drain, and:
    - both dashcam images (blurred);
    - capture time and the "Dashcam replay" sampling method;
    - the location with its ±30 m uncertainty.

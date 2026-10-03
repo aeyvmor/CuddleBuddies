@@ -88,3 +88,16 @@ describe("GeminiProvider", () => {
     expect(() => providerFromEnv({ VISION_PROVIDER: "magic" }, factories)).toThrow(/Unknown VISION_PROVIDER/);
   });
 });
+
+describe("GeminiProvider regions", () => {
+  it("passes valid boxes through and drops an empty regions array", async () => {
+    const withBox = await provider(fakeFetch(() => ok(JSON.stringify({ ...fields, regions: [{ label: "BLOCKED_DRAIN", box: [825, 535, 865, 585] }] }))).impl).analyze(image);
+    expect(Detection.parse(withBox).regions).toEqual([{ label: "BLOCKED_DRAIN", box: [825, 535, 865, 585] }]);
+    const none = await provider(fakeFetch(() => ok(JSON.stringify({ ...fields, regions: [] }))).impl).analyze(image);
+    expect(Detection.parse(none).regions).toBeUndefined();
+  });
+  it("lets invalid boxes fail schema validation (never silently fixed)", async () => {
+    const bad = await provider(fakeFetch(() => ok(JSON.stringify({ ...fields, regions: [{ label: "BLOCKED_DRAIN", box: [900, 0, 100, 50] }] }))).impl).analyze(image);
+    expect(Detection.safeParse(bad).success).toBe(false);
+  });
+});

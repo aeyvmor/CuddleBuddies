@@ -148,3 +148,24 @@ describe("work-order requests", () => {
     expect(UpdateWorkOrderRequest.safeParse({ status: "IN_PROGRESS" }).success).toBe(true);
   });
 });
+
+describe("detection regions (AI-estimated boxes)", () => {
+  const box = (b: number[]) => ({ ...validDetection, regions: [{ label: "BLOCKED_DRAIN", box: b }] });
+  it("accepts 0-1000 [ymin, xmin, ymax, xmax] boxes and stays optional", () => {
+    expect(Detection.safeParse(box([825, 535, 865, 585])).success).toBe(true);
+    expect(Detection.safeParse(validDetection).success).toBe(true);
+  });
+  it.each([
+    ["out of range", [0, 0, 1001, 10]],
+    ["min >= max", [500, 500, 400, 600]],
+    ["non-integer", [1.5, 0, 10, 10]],
+    ["wrong length", [0, 0, 10]],
+  ])("rejects %s", (_l, b) => {
+    expect(Detection.safeParse(box(b as number[])).success).toBe(false);
+  });
+  it("rejects boxes on a NONE result, more than 5 boxes, and unknown labels", () => {
+    expect(Detection.safeParse({ ...box([1, 1, 2, 2]), issueType: "NONE" }).success).toBe(false);
+    expect(Detection.safeParse({ ...validDetection, regions: Array(6).fill({ label: "OTHER", box: [1, 1, 2, 2] }) }).success).toBe(false);
+    expect(Detection.safeParse({ ...validDetection, regions: [{ label: "PERSON", box: [1, 1, 2, 2] }] }).success).toBe(false);
+  });
+});

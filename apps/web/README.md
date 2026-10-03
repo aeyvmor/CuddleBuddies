@@ -9,16 +9,18 @@ Do not depend on Google Street View for the hackathon MVP. Prefer team-captured 
 ## Current status
 
 - **Data source (`VITE_ASTIG_API`):**
-  - `live` (default for `npm run dev` and production builds): the deployed API (`https://2jpf5wobhl.execute-api.ap-southeast-1.amazonaws.com`) through `@astig/api-client`, behind a Cognito sign-in. `src/api/httpClient.ts` adapts `AstigClient` to the UI's `ApiClient` interface.
+  - `live` (default for `npm run dev` and production builds): the deployed API (`https://2jpf5wobhl.execute-api.ap-southeast-1.amazonaws.com`) through `@astig/api-client`, behind a Cognito sign-in. `src/api/httpClient.ts` adapts `AstigClient` to the UI's `ApiClient` interface. Live data mixes labeled synthetic seed records and the dashcam-replay demo issues; both are `isSynthetic` and badged. See `docs/api/integration-guide.md`.
   - `mock` (default under the test runner): the in-memory **mock API** (`src/api/mockClient.ts`) with **synthetic, labeled** records (`src/data/syntheticData.ts`), for tests and an offline demo. It has a demo role picker instead of sign-in.
   - Set it in `apps/web/.env.local` (see `.env.example`), for example `VITE_ASTIG_API=mock` for the offline demo. Any other value shows a configuration error.
 - **Sign-in (live):** Cognito `USER_PASSWORD_AUTH` via `CognitoAuth` (`src/auth/AuthGate.tsx`, `src/auth/SignInScreen.tsx`).
-  - A first-login `NEW_PASSWORD_REQUIRED` challenge shows a "Set a new password" form.
+  - A first-login `NEW_PASSWORD_REQUIRED` challenge shows a "Set a new password" form. The pool's rule is shown: at least 12 characters, upper- and lower-case letters and a digit.
   - Tokens are kept **in memory only**, so a page reload asks for sign-in again.
-  - The top bar shows who is signed in and a **Sign out** button.
+  - The top bar shows who is signed in and a **Sign out** button. In live mode there is no role picker: the role comes from the Cognito groups, and the API enforces it.
   - `AUTH_REQUIRED` / `UNAUTHENTICATED` from any call returns to sign-in ("Your session has ended…").
   - `FORBIDDEN` shows "This account can't access the dashboard (needs OFFICER)."
   - Passwords are never stored, logged or committed; the demo accounts' passwords are with the backend owner.
+- **Map:** OpenStreetMap basemap through Leaflet (`src/components/IssueMap.tsx`, no API key). Markers stay keyboard-operable React buttons over the map. Faint circles show location uncertainty. Without a laid-out map (tests), markers fall back to the schematic projection.
+- **AI problem regions:** when a detection has `regions`, the evidence image shows them as red outlines with a text caption ("AI-estimated… Approximate; an officer should verify", `src/components/RegionImage.tsx`). The expired-link refetch applies to these images too.
 - **Contracts:** shapes come from `@astig/contracts` (draft v0). The mock validates requests with the shared Zod schemas and checks its own responses against them. A test parses every synthetic record with `IssueDetailResponse`.
 - **Server rules mirrored by the mock:**
   - officer-only routes, including the list and analytics (`FORBIDDEN`);
@@ -28,7 +30,7 @@ Do not depend on Google Street View for the hackathon MVP. Prefer team-captured 
   - resolving the work order resolves the issue;
   - after photos only on `IN_PROGRESS`/`RESOLVED` work orders, at most 5.
 - **Features:**
-  - schematic map and issue queue, with severity / type / area / issue status / work-order filters. Area options come from the list response's `areaNames`;
+  - issue map (OpenStreetMap) and issue queue, with severity / type / area / issue status / work-order filters. Area options come from the list response's `areaNames`;
   - a result line ("Showing 45 of 300 issues") and **Clear filters (n)**; a set filter is outlined and tinted;
   - the queue is in the contract's list order (score, then most recently observed, then id) and scrolls inside its card. It keeps the selected row in view. The HTTP client follows `nextCursor` (200 per page) up to 2,000 issues, and says so if more exist;
   - issue detail: **Previous / Next** through the filtered queue ("Issue 2 of 4 in the queue") and **Close**, plus status, location uncertainty, observed range, evidence history, confidence, review flag, sampling method, failed processing, and image availability;
@@ -53,7 +55,7 @@ Do not depend on Google Street View for the hackathon MVP. Prefer team-captured 
 - **Load failures:** they show as failures, not as empty data. Summary tiles show "–", the map and queue say "Issues could not be loaded", and the alert has **Try again**. Before this fix the page showed zeros and "No issues match", which looks like a clean result.
 - **Layout:** follows the command-center and issue-detail mockups in `visual/`.
   - Shell: left sidebar (brand, in-page section links, data-source note) and a sticky top bar (page title, synthetic-data badge, demo role).
-  - Command center: summary tiles, filters, then the schematic map beside the issue queue (sorted by priority score, highest first).
+  - Command center: summary tiles, filters, then the issue map beside the issue queue (sorted by priority score, highest first).
   - Issue review: opens below the map and queue and scrolls into view. Evidence is on the left; priority score with gauge, location and history, and the work order are on the right.
   - Summary tiles are counts of the issue list the page already holds (open issues by highest AI severity estimate, open, resolved). They are not the analytics summary. On phones they are three to a row and compact.
   - The synthetic-data badge is full size in the top bar and the detail header. Repeated rows (queue, evidence cards) carry a compact "Synthetic" badge in the same colours.
@@ -81,7 +83,7 @@ Superseded proposals from `docs/api/client-contract-proposal.md`: contract v0 us
 
 The web follows the contract in each case.
 
-The map is a schematic placeholder, not a basemap, because the map provider is undecided. `IssueMap` props are the seam for a provider-backed map.
+The map uses OpenStreetMap tiles through Leaflet. `IssueMap` props stay the seam if the provider changes.
 
 ## Accessibility and keyboard behavior
 
@@ -144,4 +146,4 @@ The map is a schematic placeholder, not a basemap, because the map provider is u
 | List load fails | Tiles show "–" (not 0), "Issues could not be loaded", Try again. |
 | 390 px wide | No horizontal overflow. Previous / Next / Close share one row. Tiles are three to a row. |
 
-At 300 issues the schematic map's markers overlap. Clustering belongs to the map provider the backend owner is choosing.
+At 300 issues the markers overlap (this check ran on the schematic map, before the OpenStreetMap basemap). Marker clustering is not built.

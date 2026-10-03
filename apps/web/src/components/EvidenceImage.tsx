@@ -1,6 +1,8 @@
 import { useState } from "react";
+import type { DetectionRegion } from "@astig/contracts";
 import type { EvidenceAccess } from "../api/types";
 import { Icon } from "./Icon";
+import { RegionImage } from "./RegionImage";
 
 const EVIDENCE_REASON: Record<string, string> = {
   NOT_UPLOADED: "Image not uploaded",
@@ -40,6 +42,8 @@ export function EvidenceImage(props: {
   alt: string;
   retry: ImageRetry;
   onReload: () => void;
+  /** AI-estimated problem areas to outline (optional; advisory). */
+  regions?: DetectionRegion[];
   /** CSS Module class names (possibly undefined under noUncheckedIndexedAccess). */
   classes: { image?: string; placeholder?: string; placeholderIcon?: string; retryButton?: string };
 }) {
@@ -67,16 +71,21 @@ export function EvidenceImage(props: {
       </div>
     );
   }
+  const onError = () => {
+    if (props.retry.canRetry) props.retry.onExpired();
+    else setBrokenGeneration(generation);
+  };
+  // AI-estimated problem areas (Detection.regions) are drawn over the image when present.
+  if (props.regions?.length) {
+    return <RegionImage key={generation} src={evidence.url} alt={props.alt} regions={props.regions} onError={onError} />;
+  }
   return (
     <img
       key={generation}
       className={classes.image}
       src={evidence.url}
       alt={props.alt}
-      onError={() => {
-        if (props.retry.canRetry) props.retry.onExpired();
-        else setBrokenGeneration(generation);
-      }}
+      onError={onError}
     />
   );
 }

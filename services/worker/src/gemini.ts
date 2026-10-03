@@ -21,6 +21,7 @@ export const GEMINI_PROMPT = [
   "confidence: your confidence in this assessment, 0 to 1.",
   "requiresHumanReview: true unless the frame is unambiguous.",
   "evidenceDescription: one or two factual sentences (max 400 characters) describing what you see. Do not describe or identify people, faces, or licence plates.",
+  "regions: for each visible problem (at most 5), a tight bounding box around the problem area itself (e.g. the obstructed drain opening, the pothole, the pooled water) as box [ymin, xmin, ymax, xmax] with integers 0-1000 relative to image height and width, and label = the issue type. Never box people, vehicles, or signage. If issueType is NONE, regions must be an empty array.",
 ].join("\n");
 
 /** JSON Schema sent to Gemini; mirrors the model-supplied part of the Detection contract. */
@@ -35,6 +36,19 @@ export const GEMINI_RESPONSE_SCHEMA = {
     confidence: { type: "number", minimum: 0, maximum: 1 },
     evidenceDescription: { type: "string", maxLength: 400 },
     requiresHumanReview: { type: "boolean" },
+    regions: {
+      type: "array",
+      maxItems: 5,
+      items: {
+        type: "object",
+        properties: {
+          label: { type: "string", enum: ["BLOCKED_DRAIN", "DAMAGED_DRAIN", "STANDING_WATER", "ROAD_DAMAGE", "OTHER"] },
+          box: { type: "array", items: { type: "integer", minimum: 0, maximum: 1000 }, minItems: 4, maxItems: 4 },
+        },
+        required: ["label", "box"],
+        additionalProperties: false,
+      },
+    },
   },
   required: [
     "infrastructureVisible",
@@ -45,6 +59,7 @@ export const GEMINI_RESPONSE_SCHEMA = {
     "confidence",
     "evidenceDescription",
     "requiresHumanReview",
+    "regions",
   ],
   additionalProperties: false,
 } as const;
@@ -129,7 +144,13 @@ export class GeminiProvider implements VisionProvider {
     }
     // Server-controlled fields; the model cannot override them. Unknown model fields stay and
     // cause strict schema validation to fail rather than being silently dropped.
-    const detection = { ...(fields as Record<string, unknown>), schemaVersion: DETECTION_SCHEMA_VERSION, modelVersion: `gemini:${this.model}` };
+    const { regions, ...rest } = fields as Record<string, unknown>;
+    const detection = {
+      ...rest,
+      ...(Array.isArray(regions) && regions.length > 0 ? { regions } : regions === undefined || Array.isArray(regions) ? {} : { regions }),
+      schemaVersion: DETECTION_SCHEMA_VERSION,
+      modelVersion: `gemini:${this.model}`,
+    };
     return detection;
   }
 }
