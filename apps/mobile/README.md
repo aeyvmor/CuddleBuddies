@@ -6,15 +6,78 @@ Implement session lifecycle, device/vehicle association, location metadata, trav
 
 Follow `.kiro/specs/astig/requirements.md` and `docs/api/contract.md`. Validate distance sampling on target devices; do not substitute noisy GPS deltas for VIO without recording that limitation.
 
-## Feasibility findings
+## Capture app (two screens)
 
-Status: **Spike complete for an indoor-only test. Expo: go. `VIO_DISTANCE` as the trigger: no-go for now. See "Go / no-go".** Labels: **[measured]** = run on this machine or device; **[docs]** = inferred from package source or documentation, not verified on a device.
+The operator is a driver or PUV operator: start a session, mount the phone, don't touch it again until Stop. The design is for a glance, not for reading. `App.tsx` switches between two screens without a navigation library.
 
-### Spike app (throwaway)
+1. **Session setup** (`src/screens/SetupScreen.tsx`):
+   - device and vehicle labels, typed or picked from the five most recent;
+   - capture interval, default 7 m, stepper or typed, 2–50 m;
+   - distance source;
+   - camera and location permission status;
+   - Start;
+   - a small "Diagnostics" entry for the team's measurement screen.
+
+   Each permission shows a plain reason. If one is refused, the screen says what will not work and offers "Ask again", or "Open Settings" once Android stops asking. A session cannot start without both.
+2. **Active session** (`src/screens/ActiveScreen.tsx`), largest first:
+   - RECORDING and elapsed time;
+   - distance travelled;
+   - captured, failed and waiting-upload counts;
+   - GPS reported accuracy and speed, with "No GPS fix" when there is none;
+   - the distance source in words, plus AR tracking state for the AR source;
+   - live view and latest-capture thumbnail;
+   - a large "Capture now" button and a larger red "Stop session" button with a confirmation dialog. Android Back opens the same confirmation.
+
+   The screen stays awake during a session. It works in portrait and landscape, with two columns in landscape.
+
+**Distance sources.** Each is labelled as what it is, and each sets the `samplingMethod` on every capture its trigger takes. A tap on "Capture now" is always recorded as `MANUAL` with `distanceFromPreviousM: null`, whatever the source: a tap makes no distance claim.
+
+| Source (on screen) | `samplingMethod` | Image | What is known |
+| --- | --- | --- | --- |
+| GPS speed distance | `GPS_DISTANCE` | `expo-camera` photo, full resolution | Implemented and unit-tested only. Reads nothing indoors. **Never tried outdoors or in a vehicle.** |
+| AR tracking with motion gate (marked experimental) | `VIO_DISTANCE` | Frame of the AR view (ARCore holds the camera) | **Measured indoors only**, hand-held, one room, at night: one measured 4 m walk tracked closely, and it stopped counting while the tester stood still. A single short sample. The 3 m/s plausibility limit means it does not count vehicle speeds. |
+| Manual only | `MANUAL` | `expo-camera` photo | No distance trigger. |
+
+The screens make no accuracy claim for any source. The only accuracy figure shown is the GPS receiver's own live report (for example "±8 m").
+
+**Trigger.** It reuses `src/distance.ts` through `src/trigger.ts`, the same calls the diagnostics screen makes:
+- **GPS:** speed-integrated distance (`gpsSpeedLiveM`), projected at most 2 s between fixes;
+- **AR:** net displacement since the last capture (`vioSinceCaptureM` / `markVioCapture`).
+
+There is no timer-based capture. A 250 ms tick only re-evaluates the distance trigger between GPS fixes, and the trigger is skipped while a capture is in flight, so an interval is never consumed without an attempt. A fix older than 10 s is not attached to a photo: the capture is recorded as failed (`NO_LOCATION_FIX`), never given a stale position.
+
+**Local session and queue.** There is no upload in this build. The screens say so, and they show no upload progress, network state or "synced" indicator.
+- **Queue entries (`src/queue.ts`):** each attempt becomes one entry. `CAPTURED` holds the image and its contract-shaped `observation-capture.v0` record (`src/capture.ts`) with `upload: { state: "PENDING" }`. `FAILED` holds the reason. A failure is never converted into a capture.
+- **Images:** moved out of the cache into the app's private `captures/` folder, named by `clientObservationId`. They are never put in the gallery.
+- **Adding an uploader later:** read `pendingUploads()` and extend `UploadState`. The screens already show "waiting upload" from that state.
+- **Session state (`src/session.ts`):** `IDLE → ACTIVE → STOPPING → ENDED → IDLE`. `STOPPING` waits for an in-flight capture to settle before ending.
+- **Saving:** session and queue are saved to the app's private storage after every change (`src/storage.ts`, write-then-replace) and every 15 s while running.
+- **Rotation:** the activity is not recreated (`configChanges` includes orientation), so state persists.
+- **Backgrounding:** recorded as a gap. Camera and location stop in the background; there is no background-location permission. GPS speed distance does not bridge gaps over 5 s, so nothing is invented.
+- **App restart:** the running session resumes. The downtime is recorded as an `APP_NOT_RUNNING` gap, and the last shown distance is carried forward. The active screen shows "Paused N time(s)".
+- **Unreadable saved data:** reported on the setup screen, and the file is moved aside, not deleted.
+
+**Theme.** `src/theme.ts` follows the Civic Pulse direction, with token names matching `apps/web/src/styles/tokens.css` where they apply. Components read only from the theme.
+- As on the web, brand green `#00B14F` is decoration only. Text and filled buttons use `#006E2E`, and muted text is `#475569`.
+- The type scale is larger than the web's, for reading at arm's length. Touch targets are at least 48 dp: 64 dp for Capture, 72 dp for Stop.
+- Every status colour is paired with words.
+- Plus Jakarta Sans is **not bundled**, so the app uses the Android system font (Roboto).
+
+**Dependencies added in this phase:**
+- `react-native-safe-area-context` (~5.7.0): a **new native module**. Edge-to-edge is on (React Native 0.86 default), so content would otherwise sit under the status and navigation bars, including the Stop button.
+- `expo-keep-awake` and `expo-file-system` (~57.0.x): declared directly so the imports resolve. Both were **already compiled into the app** as dependencies of `expo` (listed by `expo-modules-autolinking resolve`), so neither adds native code.
+
+**Not built:** sign-in, the device/vehicle registry, upload, the map, frame-quality filtering and background capture.
+
+## Feasibility findings (spike)
+
+Status: **Indoor-only spike, now the Diagnostics screen. Expo: go. `VIO_DISTANCE`: offered in the capture app only as an experimental, motion-gated option, and not recommended as the default. See "Go / no-go".** Labels: **[measured]** = run on this machine or device; **[docs]** = inferred from package source or documentation, not verified on a device.
+
+### Spike app (now the Diagnostics screen)
 
 `apps/mobile` is an isolated Expo project (own `package.json` and `package-lock.json`), **not** in the root npm workspaces. `metro.config.js` blocks the repo-root `node_modules` so the web/backend install cannot leak in. It does not import `@astig/contracts`.
 
-One screen (`App.tsx`):
+The spike screen moved, unchanged in behavior, from `App.tsx` to `src/screens/DiagnosticsScreen.tsx`. It is reachable from session setup through "Diagnostics", and only a "Back to session setup" button was added. It shows:
 - live GPS fix and reported horizontal accuracy;
 - `GPS_DISTANCE` accumulated raw (every fix) and filtered (fixes with accuracy ≤ 20 m only);
 - `VIO_DISTANCE` from the ARCore camera pose (horizontal x/z path while tracking is NORMAL), shown only in AR mode, as a stepped total and a per-update sum;
@@ -23,9 +86,20 @@ One screen (`App.tsx`):
 - "Reset distances" and "Report" (prints a JSON summary with the error against a tape-measured reference, tagged `ASTIG_SPIKE` in logcat);
 - an event log of AppState changes, GPS fix gaps over 5 s, and VIO tracking changes.
 
-Distance logic is in `src/distance.ts` and capture metadata in `src/capture.ts`, each with tests beside it.
+Distance logic is in `src/distance.ts`, capture metadata in `src/capture.ts` and the motion gate in `src/motion.ts`. The capture app adds `src/session.ts`, `src/queue.ts`, `src/trigger.ts`, `src/sources.ts`, `src/permissions.ts` and `src/persist.ts`. Each pure module has tests beside it: 64 tests in total.
 
-Commands (from `apps/mobile`): `npm install`, `npm test`, `npm run typecheck`, `npm run android` (local dev build; needs the Android SDK), `npm start` (Metro for the dev client).
+Commands (from `apps/mobile`): `npm install`, `npm test`, `npm run typecheck`. For the release build that runs unplugged, run `gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a` in `android/`, then `adb install -r app/build/outputs/apk/release/app-release.apk`. After changing `app.json`, run `npx expo prebuild --platform android --no-install --no-clean`.
+
+### Vehicle mode: GPS speed distance (implemented, **untested outdoors**)
+
+Position differences jitter by metres even when parked, and a 7 m interval is about the size of that jitter. Distance is therefore integrated from the receiver's reported ground speed (Doppler), not from position differences (`addGpsFix` / `gpsSpeedLiveM` in `src/distance.ts`):
+- **Formula:** trapezoid of speed × time between consecutive accepted fixes.
+- **Accepted fixes:** reported accuracy ≤ 20 m, and both fixes report a speed.
+- **Below 1.0 m/s:** treated as stopped and not counted.
+- **Gaps over 5 s:** not bridged; the gap is reported instead.
+- **Between fixes:** the last speed is projected for at most 2 s, so the trigger does not wait for the next 1 Hz fix.
+
+It is unit-tested only. Indoors it reads nothing (no speed). It has never been run outdoors or in a vehicle.
 
 ### Toolchain on Node 24 [measured, this PC]
 
@@ -36,7 +110,7 @@ Commands (from `apps/mobile`): `npm install`, `npm test`, `npm run typecheck`, `
 | `npx expo --version` | 57.0.27; runs on Node 24 |
 | `npx expo-doctor` | 21/21 checks passed |
 | `npx tsc --noEmit` | passes |
-| `npm test` (`node --test`, 25 tests) | 25 pass |
+| `npm test` (`node --test`) | 64 pass (29 spike + 35 capture app) |
 | `npx expo export --platform android` | JS bundle builds (Hermes, 2.2 MB) |
 | `npx expo prebuild --platform android --no-install` | native project generated. Manifest has CAMERA, FINE/COARSE location, and ARCore `optional` meta-data. No background-location permission. |
 | JDK | OpenJDK 21.0.12; Gradle release build succeeds (12 min first build, under 2 min after). |
@@ -99,19 +173,41 @@ What this does not show: behavior in daylight, outdoors, with the phone fixed to
 
 ### Motion gate (added after the pan tests; first look only)
 
-Idea from the team: count AR movement only while an independent sensor says the device is really travelling. `src/motion.ts` judges that from the accelerometer (walking bounce: standard deviation of acceleration magnitude ≥ 0.12 g over 1.5 s), with a gyroscope veto (rotation > 1.0 rad/s) and GPS speed (≥ 1.5 m/s) as an alternative for bounce-free travel such as a vehicle. Missing sensor data counts as not moving. ARCore keeps running; its updates are ignored while the gate is closed. The thresholds are starting guesses, not tuned values. Uses `expo-sensors`, which adds the `ACTIVITY_RECOGNITION` permission to the manifest (declared, never requested by the spike).
+Idea from the team: count AR movement only while an independent sensor says the device is really travelling. `src/motion.ts` judges that from three signals:
+- **Accelerometer:** walking bounce, measured as the standard deviation of acceleration magnitude over a window.
+- **Gyroscope:** a veto when rotation is too fast.
+- **GPS speed:** an alternative for bounce-free travel such as a vehicle.
 
-First look on the device **[measured]**, one uncontrolled minute in AR mode with the gate on (what the tester did during it was not recorded): 947 pose updates ignored, net distance 2.8 m, against 24 m in the ungated pan test. Per-second verdicts: 38 STILL, 15 ROTATING, 4 WALKING_BOUNCE, 1 NO_SENSOR_DATA. Bounce while hand-held reached 0.10–0.11 g at the 90th percentile, close to the 0.12 g threshold, so the margin is thin.
+Missing or stale sensor data counts as not moving, so the gate fails closed. ARCore keeps running, and its updates are ignored while the gate is closed. Uses `expo-sensors`, which adds the `ACTIVITY_RECOGNITION` permission to the manifest (declared, never requested).
 
-Not yet done: a controlled pan-only run, and a measured walk to confirm the gate opens while walking and the distance is right. Until both exist this does not change the no-go below.
+Current thresholds (`DEFAULT_MOTION_CONFIG`), tuned from the indoor readings and not validated beyond them:
+
+| Setting | Value | Basis |
+| --- | --- | --- |
+| Window | 1000 ms | Spans two steps at walking cadence, and closes the gate sooner after a stop |
+| Minimum bounce | 0.045 g | Hand-held walking on the test phone measured 0.05–0.12 g; at rest below 0.02 g **[measured indoors]** |
+| Rotation veto | > 1.0 rad/s | Starting value |
+| GPS speed that counts as travel | ≥ 1.0 m/s | Starting value |
+| Stale sensor reading | > 1000 ms | Starting value |
+
+The first gated minute (earlier thresholds 0.12 g / 1.5 s / 1.5 m/s) ignored 947 pose updates and counted 2.8 m, against 24 m ungated.
+
+**[measured indoors]** With the motion gate on, one measured 4 m walk was tracked closely, and counting stopped while the tester stood still. This is one short hand-held sample, in one room, at night. This README does not record the exact figure, or whether the thresholds above were already in place for that run. A controlled pan-only run with these thresholds, a longer measured walk, daylight, outdoors and a vehicle mount are **not tested**.
 
 ### Go / no-go
 
 - **Expo development build: go.** Camera, location and a third-party ARCore module all build and run on the target phone.
-- **`VIO_DISTANCE` as the capture trigger: no-go for now.** It produced false captures with the tester standing still, and nothing tested so far makes it safe. Sending `samplingMethod: VIO_DISTANCE` with distances the device did not travel would misstate the evidence.
-- **Recommended for the hackathon capture app:** `GPS_DISTANCE` with `MANUAL` capture always available, both labelled as such, using the `expo-camera` photo (3060x4080). Outdoor GPS behavior is still **untested**; indoors it was too coarse for a 7 m interval (±4 to ±21 m, fixes 5–8 s apart), so the interval may need to be larger than 7 m and the limitation stated. If neither works on demo day, use the clearly labelled synthetic route, as the hackathon plan already allows.
-- **VIO stays a documented future option**, to be re-tested with the phone mounted in a vehicle in daylight, and probably fused with GPS speed (count VIO movement only when GPS agrees the device is moving). That is beyond this spike.
-- **Still untested:** a measured walk for any method, outdoor `GPS_DISTANCE`, in-vehicle use, screen-lock behavior, and distance-triggered auto-capture producing the expected count on a real walk.
+- **`VIO_DISTANCE` as the capture trigger: no-go for now.** Without the motion gate it produced false captures with the tester standing still. With the gate there is one short, good indoor sample (above), which is not enough to call it safe. Sending `samplingMethod: VIO_DISTANCE` with distances the device did not travel would misstate the evidence. The capture app offers it only as "AR tracking with motion gate", marked experimental.
+- **Recommended for the hackathon capture app:** GPS speed distance (`GPS_DISTANCE`), with "Capture now" (`MANUAL`) always available, using the `expo-camera` photo (3060x4080).
+  - Outdoor and in-vehicle GPS behavior is still **untested**.
+  - Indoors, position accuracy was ±4 to ±21 m and speed was not reported, so nothing was counted. The speed-integrated mode was built for that reason.
+  - If it does not work on demo day, use the clearly labelled synthetic route, as the hackathon plan already allows.
+- **VIO stays a documented future option**, to be re-tested with the phone mounted in a vehicle in daylight. Note that the capture app's 3 m/s plausibility limit stops AR from counting vehicle speeds today.
+- **Still untested:**
+  - a measured outdoor walk for any method;
+  - outdoor `GPS_DISTANCE` and any in-vehicle use;
+  - distance-triggered auto-capture producing the expected count on a real route;
+  - screen-lock and background behavior on the device. The capture app records them as gaps, which is unit-tested only.
 
 ### Contract gaps (draft `packages/contracts/src/observation.ts`), preliminary
 
@@ -121,3 +217,11 @@ Not yet done: a controlled pan-only run, and a measured walk to confirm the gate
 4. **`MANUAL` is undefined.** It is not specified whether this means a human tap with no distance. Proposed: `distanceFromPreviousM` must be `null` when `samplingMethod` is `MANUAL`.
 
 Gaps 1 and 2 were hit on the device: the spike logs tracking losses since the previous capture in a `spike` object outside the contract shape, because the contract has nowhere to put them.
+
+### Contract items that shaped the capture app UI
+
+5. **Device and vehicle IDs.** `CreateSessionRequest` needs registered `deviceId` and `vehicleId` UUIDs, and there is no route to list or look them up. The setup screen therefore takes free-text **labels**, kept on the phone only. Registering a session will need a lookup route, or a configured ID per phone.
+6. **No session-level field for the distance source or interval.** The choice is recorded per capture as `samplingMethod`, and `intervalM` is local (gap 3).
+7. **A tap is `MANUAL` in every mode.** The contract has one `samplingMethod` per observation. A manual tap during a GPS session cannot be `GPS_DISTANCE` without claiming a distance, so it is recorded as `MANUAL` with `distanceFromPreviousM: null`. This implements the proposal in gap 4.
+8. **Session routes exist but are not used.** `services/api` has `POST /sessions`, `PATCH /sessions/{id}`, `POST /sessions/{id}/observations` and `POST /upload-url`, all with role `OPERATOR` and Cognito sign-in. This build does not call them: there is no sign-in on the phone, and the task kept the session local. The local record keeps the fields those routes need (`clientSessionId`, `startedAt`, `endedAt`, `startLocation`, the capture requests), so an uploader can be added without changing the screens.
+9. **Gaps when the app was not running.** The contract cannot express them. They are local only and shown on screen.

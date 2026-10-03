@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "ASTIG Spike",
+    "name": "ASTIG Capture",
     "slug": "astig-mobile-spike",
     "version": "0.0.1",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "platforms": ["android"],
@@ -22,14 +22,14 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "ASTIG spike: test photo capture for a feasibility check. Photos stay on the device.",
+          "cameraPermission": "ASTIG takes road photos during an inspection session. Photos stay on this phone in this build.",
           "recordAudioAndroid": false
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "ASTIG spike: measure GPS accuracy and travelled distance.",
+          "locationWhenInUsePermission": "ASTIG records where each photo was taken and how far the vehicle has travelled.",
           "isAndroidBackgroundLocationEnabled": false,
           "isAndroidForegroundServiceEnabled": false
         }
