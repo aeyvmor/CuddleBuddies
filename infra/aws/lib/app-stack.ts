@@ -202,7 +202,7 @@ export class AppStack extends Stack {
         // Gemini adapter; until the secret holds a real key every image fails explicitly with
         // PROVIDER_NOT_CONFIGURED (never a fabricated detection).
         VISION_PROVIDER: "gemini",
-        GEMINI_MODEL: String(this.node.tryGetContext("geminiModel") ?? "gemini-3.8-flash"),
+        GEMINI_MODEL: String(this.node.tryGetContext("geminiModel") ?? "gemini-3.1-flash-lite"),
         VISION_SECRET_ARN: visionSecret.secretArn,
       },
     });

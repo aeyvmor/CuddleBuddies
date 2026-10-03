@@ -8,7 +8,7 @@ import { ProviderError, type VisionProvider } from "./provider";
  * The API key is read at call time from the injected getter (Secrets Manager in Lambda) and is
  * never logged.
  */
-export const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
+export const DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite";
 const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 
 export const GEMINI_PROMPT = [
@@ -81,7 +81,9 @@ export class GeminiProvider implements VisionProvider {
       ],
       generationConfig: {
         temperature: 0,
-        responseFormat: { text: { mimeType: "application/json", schema: GEMINI_RESPONSE_SCHEMA } },
+        // Verified against the live API (2026-10-04): responseMimeType + responseJsonSchema.
+        responseMimeType: "application/json",
+        responseJsonSchema: GEMINI_RESPONSE_SCHEMA,
       },
     };
 

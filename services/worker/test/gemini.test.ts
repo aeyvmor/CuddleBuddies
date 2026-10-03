@@ -46,7 +46,7 @@ describe("GeminiProvider", () => {
     expect((init.headers as Record<string, string>)["x-goog-api-key"]).toBe("test-key");
     const body = JSON.parse(init.body as string);
     expect(body.contents[0].parts[1].inlineData).toEqual({ mimeType: "image/jpeg", data: "/9j/" });
-    expect(body.generationConfig.responseFormat.text).toEqual({ mimeType: "application/json", schema: GEMINI_RESPONSE_SCHEMA });
+    expect(body.generationConfig).toMatchObject({ temperature: 0, responseMimeType: "application/json", responseJsonSchema: GEMINI_RESPONSE_SCHEMA });
   });
 
   it("returns output that passes the shared Detection schema, with server-set versions", async () => {
