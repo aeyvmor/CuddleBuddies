@@ -1,17 +1,19 @@
 /**
  * PROVISIONAL client-side API types.
  *
- * The API contract is not frozen and packages/contracts is empty. Field names
- * follow docs/api/contract.md where it names them (detection output, capture
- * metadata). Everything marked [PROVISIONAL] is a proposal for the backend owner
- * to confirm or replace. When packages/contracts lands, delete this file and
- * import from the shared package; see apps/web/README.md "Contract gaps".
+ * The API contract is not frozen and packages/contracts is empty. Only the
+ * Detection field names (contract.md "Detection output minimum"), the work-order
+ * states (requirements.md item 11) and the processing statuses (contract.md
+ * "API behavior") are taken from the docs. Every other name and shape here was
+ * chosen by the web client, whether or not it carries a [PROVISIONAL] marker.
+ * Line-by-line review: docs/api/client-contract-proposal.md. When
+ * packages/contracts lands, delete this file and import from the shared package.
  */
 
-/** [PROVISIONAL] enum values; contract requires a restricted enum but lists none. */
+/** [PROVISIONAL] enum values; contract.md says "Restrict enums" but lists no severity values. */
 export type Severity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
-/** [PROVISIONAL] */
+/** [PROVISIONAL] enum values; contract.md names issue_type but lists no values. */
 export type IssueType = "BLOCKED_DRAIN" | "STANDING_WATER" | "DEBRIS" | "DAMAGED_ROAD";
 
 /** Required by requirements.md item 11. */
@@ -36,26 +38,28 @@ export interface Detection {
   schema_version: string;
 }
 
+/** [PROVISIONAL] read shape; contract.md lists capture concepts but not response field names. */
 export interface Observation {
   id: string;
   /** UTC ISO-8601 instant. */
   captured_at: string;
   latitude: number;
   longitude: number;
-  /** Available horizontal accuracy in metres; null when the device gave none. */
+  /** [PROVISIONAL] name. Available horizontal accuracy in metres; null when the device gave none. */
   horizontal_accuracy_m: number | null;
   processing_status: ProcessingStatus;
   /** [PROVISIONAL] stable machine code when processing_status is FAILED. */
   error_code: string | null;
-  /** Short-lived authorised URL, or null (not yet processed / synthetic / expired). */
+  /** [PROVISIONAL] Short-lived authorised URL, or null (not yet processed / synthetic / expired). Issuance and expiry are undefined. */
   image_url: string | null;
   /** Present only when processing_status is COMPLETED. */
   detection: Detection | null;
 }
 
-/** [PROVISIONAL] names mirror requirements.md item 8 factor list. */
+/** [PROVISIONAL] names mirror requirements.md item 8 factor list ("population/road exposure" -> exposure). */
 export type ScoreFactor = "severity" | "weather" | "recurrence" | "hazard" | "exposure";
 
+/** [PROVISIONAL] whole shape; design.md requires persisted components and missing-vs-zero distinction but defines no fields. */
 export interface ScoreComponent {
   factor: ScoreFactor;
   /** UNAVAILABLE means the input was not obtained; it is NOT zero risk. */
@@ -66,6 +70,7 @@ export interface ScoreComponent {
   cap: number;
 }
 
+/** [PROVISIONAL] shape; only formula_version is named in design.md. */
 export interface RiskAssessment {
   /** 0..100 */
   total: number;
@@ -73,6 +78,7 @@ export interface RiskAssessment {
   components: ScoreComponent[];
 }
 
+/** [PROVISIONAL] fields; only the status values come from requirements.md. */
 export interface WorkOrder {
   id: string;
   issue_id: string;
@@ -83,6 +89,7 @@ export interface WorkOrder {
   updated_at: string;
 }
 
+/** [PROVISIONAL] shape. Has no issue-level status distinct from work_order (see proposal). */
 export interface Issue {
   id: string;
   issue_type: IssueType;
@@ -106,6 +113,7 @@ export interface IssueDetail extends Issue {
   observations: Observation[];
 }
 
+/** [PROVISIONAL] query parameters; no pagination yet although contract.md requires it. */
 export interface IssueFilters {
   severity?: Severity;
   issue_type?: IssueType;
@@ -114,7 +122,7 @@ export interface IssueFilters {
   work_order_status?: WorkOrderStatus | "NONE";
 }
 
-/** docs/api/contract.md: consistent envelope with stable code and safe message. */
+/** [PROVISIONAL] contract.md requires a stable code and safe message; the wrapper and code list are not defined. */
 export interface ApiErrorBody {
   code: string;
   message: string;
