@@ -9,7 +9,7 @@
 | API base URL | `https://2jpf5wobhl.execute-api.ap-southeast-1.amazonaws.com` |
 | Cognito user pool ID | `ap-southeast-1_uYQoBKBkj` |
 | Cognito app client ID (public, no secret; SRP or USER_PASSWORD auth) | `7dgk8feqomk5d5q0vr81fp7m86` |
-| Allowed browser origins (CORS, API + S3 PUT) | `http://localhost:5173`, `http://localhost:4173`. Set with `-c webOrigins=https://<app>.vercel.app,http://localhost:5173` and redeploy `--all` |
+| Allowed browser origins (CORS, API + S3 PUT) | `https://astig-xi.vercel.app`, `http://localhost:5173`, `http://localhost:4173`. Defaults are in `cdk.json` (`webOrigins`); change them and redeploy `--all`. The alarm email is kept in the git-ignored `cdk.context.json` (`alarmEmail`) |
 
 Send `Authorization: Bearer <Cognito access or ID token>`. Roles come from Cognito groups `OFFICER` and `OPERATOR`. Self sign-up is off, so the account owner creates users.
 

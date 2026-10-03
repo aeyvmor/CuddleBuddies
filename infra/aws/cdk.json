@@ -2,6 +2,7 @@
   "app": "npx tsx bin/astig.ts",
   "watch": { "include": [] },
   "context": {
-    "@aws-cdk/core:checkSecretUsage": true
+    "@aws-cdk/core:checkSecretUsage": true,
+    "webOrigins": "https://astig-xi.vercel.app,http://localhost:5173,http://localhost:4173"
   }
 }

@@ -10,7 +10,8 @@ Everything needed to connect `apps/web` and `apps/mobile` to the deployed backen
 | Cognito region | `ap-southeast-1` |
 | Cognito user pool | `ap-southeast-1_uYQoBKBkj` |
 | Cognito app client (public, no secret) | `7dgk8feqomk5d5q0vr81fp7m86` |
-| Allowed browser origins (CORS) | `http://localhost:5173`, `http://localhost:4173` (Vite dev/preview) |
+| Web app (Vercel, owner's account; auto-deploys from `main`) | `https://astig-xi.vercel.app` |
+| Allowed browser origins (CORS) | `https://astig-xi.vercel.app`, `http://localhost:5173`, `http://localhost:4173` |
 
 These are not secrets; every API call still needs a valid login. They are also exported as `ASTIG_DEV` from `@astig/api-client`.
 
@@ -21,7 +22,7 @@ These are not secrets; every API call still needs a valid login. They are also e
 
 The passwords are in the owner's git-ignored `secrets/demo-accounts.local.md`; ask for them privately, never in a commit or a group chat. Self sign-up is off.
 
-**Vercel:** when the web app has a URL, send it to the backend owner. It has to be added as an exact origin and redeployed (`-c webOrigins=https://<app>.vercel.app,http://localhost:5173`); until then the browser blocks API calls from that URL. Preview deployments get random URLs, so use one stable production domain for the demo.
+**Vercel:** the project lives in the owner's Vercel account (root directory `apps/web`; install `cd ../.. && npm ci --workspace @astig/web --include-workspace-root=false`; build `npm run build`; output `dist`). Only `https://astig-xi.vercel.app` is allowed by CORS. Preview URLs (`astig-<hash>.vercel.app`) are blocked on purpose, so test against production or localhost. The origins live in `infra/aws/cdk.json` (`webOrigins`).
 
 ## Auth
 
