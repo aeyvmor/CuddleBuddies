@@ -1,0 +1,8 @@
+{
+  "name": "astig",
+  "private": true,
+  "description": "ASTIG hackathon MVP monorepo. Backend owner: add packages/* and services/* to workspaces when they gain a package.json.",
+  "workspaces": [
+    "apps/web"
+  ]
+}

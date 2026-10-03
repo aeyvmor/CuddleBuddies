@@ -1,4 +1,4 @@
-# ASTIG team handoff
+﻿# ASTIG team handoff
 
 > Update this page at the end of each meaningful work session. Durable requirements/design live in `.kiro/specs/astig/` and `docs/`.
 
@@ -43,3 +43,4 @@ See [architecture decisions](../docs/architecture/decisions.md) and the [pre-bui
 | Date | Changes / validation | Next step / blocker |
 | --- | --- | --- |
 | 2026-10-03 | Initial product/architecture analysis, stack interview, setup checklist, and role prompt pack. No application code or tests exist yet. | Team kickoff: assign owners, confirm recommended tooling, complete readiness gate, agree API/data contracts. |
+| 2026-10-03 (client) | Created npm workspace root (`package.json`, lists `apps/web` only; add other packages when they have a `package.json`). Built web slice against mock API + synthetic data; typecheck, 17 tests, and build pass. See `apps/web/README.md` for provisional contract fields. | Backend owner to confirm/replace provisional fields. Mobile not started: needs Android device + `adb` (not installed) and VIO/Expo decision. |
