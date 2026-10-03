@@ -1,0 +1,24 @@
+{
+  "name": "@astig/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "ASTIG API: issue detail and officer work-order operations (Lambda handler + local dev server).",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "tsx --env-file-if-exists=../../.env src/local-server.ts"
+  },
+  "dependencies": {
+    "@astig/contracts": "0.0.0",
+    "@astig/database": "0.0.0",
+    "@astig/domain": "0.0.0",
+    "pg": "8.23.1",
+    "zod": "4.6.5"
+  },
+
+  "devDependencies": {
+    "@types/pg": "8.23.1"
+  }
+}

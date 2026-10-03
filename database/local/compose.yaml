@@ -1,0 +1,22 @@
+# Local-only PostGIS for ASTIG development. Credentials here are throwaway local values,
+# not secrets; never reuse them for any deployed database.
+name: astig-local
+services:
+  postgis:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_USER: astig
+      POSTGRES_PASSWORD: astig_local_only
+      POSTGRES_DB: astig
+    ports:
+      # Bound to loopback only; 5433 avoids a host Postgres on 5432.
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - astig-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U astig -d astig"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+volumes:
+  astig-pgdata:

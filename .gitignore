@@ -26,6 +26,8 @@ __pycache__/
 *.py[cod]
 
 # Infrastructure local state
+cdk.out/
+cdk.context.json
 .terraform/
 *.tfstate
 *.tfstate.*

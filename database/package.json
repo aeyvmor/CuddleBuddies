@@ -1,0 +1,25 @@
+{
+  "name": "@astig/database",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "ASTIG PostgreSQL + PostGIS migrations, synthetic seed, and local DB tooling.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./migrate": "./scripts/migrate-lib.ts",
+    "./seed": "./scripts/seed-lib.ts"
+  },
+  "scripts": {
+    "migrate": "tsx --env-file-if-exists=../.env scripts/migrate.ts",
+    "seed": "tsx --env-file-if-exists=../.env scripts/seed.ts",
+    "reset": "tsx --env-file-if-exists=../.env scripts/reset.ts"
+  },
+  "dependencies": {
+    "@astig/contracts": "0.0.0",
+    "@astig/domain": "0.0.0",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1"
+  }
+}

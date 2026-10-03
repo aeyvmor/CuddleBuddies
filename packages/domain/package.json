@@ -1,0 +1,13 @@
+{
+  "name": "@astig/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Framework-independent ASTIG rules: risk scoring and work-order transitions.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@astig/contracts": "0.0.0"
+  }
+}

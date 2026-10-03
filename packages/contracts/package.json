@@ -1,0 +1,13 @@
+{
+  "name": "@astig/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Versioned, runtime-validated ASTIG API and model-output contracts (Zod).",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  }
+}

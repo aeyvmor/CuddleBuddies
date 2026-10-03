@@ -10,7 +10,9 @@
 - User owns backend and AWS tasks, is new to AWS, and will work from an iPad; setup docs guide browser-based Console/CloudShell access without local AWS installation or long-lived keys.
 - Street View is deferred for the MVP to avoid per-request billing and terms/setup overhead; use team-captured, synthetic, or explicitly licensed images.
 - Added pre-build setup checklist and four role-specific AI coding prompts.
-- No application dependencies, database migrations, AWS resources, or deployed services have been set up yet.
+- **First backend slice exists (local only):** npm workspaces root; `packages/contracts` (Zod v0 draft); `packages/domain` (risk score + work-order transitions); `database` (migration 0001, synthetic seed, migrate/seed/reset scripts, Docker PostGIS on 5433); `services/api` (`GET /issues/{id}`, `POST /issues/{id}/work-orders`, `PATCH /work-orders/{id}`, auth boundary, Lambda adapter, local dev server); `infra/aws` (CDK stack with a private evidence bucket only, **not deployed**).
+- Contract draft in `docs/api/contract-v0-proposal.md` is **pending team confirmation**.
+- No AWS resources have been created. No account/region has been verified yet.
 - Initial branch was clean at scaffold start.
 
 ## Team
@@ -43,3 +45,4 @@ See [architecture decisions](../docs/architecture/decisions.md) and the [pre-bui
 | Date | Changes / validation | Next step / blocker |
 | --- | --- | --- |
 | 2026-10-03 | Initial product/architecture analysis, stack interview, setup checklist, and role prompt pack. No application code or tests exist yet. | Team kickoff: assign owners, confirm recommended tooling, complete readiness gate, agree API/data contracts. |
+| 2026-10-03 | Backend slice: contract v0 proposal, migration 0001 + synthetic seed, risk score, issue-detail/work-order API, CDK evidence bucket. Ran on Node 24.12.0: `npm run typecheck` OK; `npm test` 68/68; `npm run test:db` 45/45; migrate/seed/reset scripts; local HTTP smoke test; `cdk synth` with placeholder account. Vitest 5 does not support Node 25, so use Node 24 (`.nvmrc`). | Team confirms contract gaps; integration owner agrees upload-URL/worker interfaces (reuse `@astig/database`); account owner sets budget/roles; read-only `sts get-caller-identity` check before any deploy. Next API work: sessions, observation route, `GET /issues` list. |

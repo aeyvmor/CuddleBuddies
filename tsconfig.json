@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": false,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": [
+    "vitest.config.ts",
+    "packages/contracts/src",
+    "packages/contracts/test",
+    "packages/domain/src",
+    "packages/domain/test",
+    "database/src",
+    "database/scripts",
+    "database/seeds",
+    "database/test",
+    "services/api/src",
+    "services/api/test",
+    "infra/aws/bin",
+    "infra/aws/lib",
+    "infra/aws/test"
+  ]
+}

@@ -41,7 +41,17 @@ Before installing dependencies or creating app code, follow the [team setup chec
 
 ## Local setup
 
-This repository currently contains planning and setup documentation only; application dependencies, database migrations, and cloud resources have not yet been created. The current stack direction is Android React Native, React + Vite + TypeScript web, TypeScript/Node API and worker, and Postgres/PostGIS. Finish the [pre-build setup checklist](docs/operations/prebuild-setup.md) before scaffolding those applications.
+The backend slice runs locally (Node 24 LTS per `.nvmrc`, Docker Desktop):
+
+```text
+copy .env.example .env
+npm install
+npm run db:up && npm run db:reset    # PostGIS + synthetic seed
+npm test && npm run test:db          # unit + database integration tests
+npm run api:dev                      # local API on 127.0.0.1:3001
+```
+
+See `database/README.md`, `services/api/README.md`, and `infra/aws/README.md`. The mobile, web, and worker apps are not scaffolded yet; follow the [pre-build setup checklist](docs/operations/prebuild-setup.md) for them.
 
 Never commit credentials. Keep local secrets in ignored `.env` files and document required variable names in `.env.example` files without real values.
 
