@@ -151,4 +151,22 @@ Additions since the first draft:
 - **New error codes:** `ALREADY_UPLOADED 409`, `SERVICE_UNAVAILABLE 503`.
 - **Processing failure codes:** `PROVIDER_NOT_CONFIGURED`, `PROVIDER_ERROR`, `PROVIDER_TIMEOUT`, `INVALID_MODEL_OUTPUT`, `IMAGE_TOO_LARGE`, `IMAGE_UNREADABLE`. This answers web gap G7.
 
-Not yet implemented: `GET /issues` list (web gap G1–G5), `GET /observations`, resolution evidence, analytics, device/vehicle registration API (the admin Lambda can register them), a real vision provider.
+Not yet implemented: `GET /observations`, resolution evidence, device/vehicle registration API (the admin Lambda can register them), a real vision provider.
+
+### Issue list and analytics (answers web gaps G1–G5)
+
+- **`GET /issues` (role `OFFICER`).**
+  - **Query parameters (all optional):** `issueType`, `severity`, `areaName`, `status` (`OPEN|RESOLVED`), `workOrderStatus` (`OPEN|IN_PROGRESS|RESOLVED|NONE`), `bbox=minLon,minLat,maxLon,maxLat`, `limit` (default 50, max 200), `cursor`.
+  - **Response:** `{ items: IssueListItem[], nextCursor, areaNames }`. Each item is `{ issue, severity, totalScore, workOrderStatus }`.
+  - **Field meanings:** `severity` is the highest `severityEstimate` across completed detections (G2, server-side). `workOrderStatus` comes from the newest work order. `areaNames` lists the distinct known areas (G5).
+  - **Sort order:** score descending (unscored last), then `lastObservedAt` descending, then id.
+  - **Errors:** unknown query parameters return `400`.
+- **`GET /analytics/summary` (role `OFFICER`)** returns:
+  - issue totals: open/resolved, by type, by severity, by area;
+  - work orders: open, in progress, resolved, mean hours to resolve;
+  - recurrence;
+  - coverage: sessions, observations, reported capture distance;
+  - processing status counts;
+  - `includesSynthetic`.
+
+  It reads the same SQL views (`issue_summary`, `session_coverage`, migration `0002`) as the QuickSight export, so the web dashboard and QuickSight agree.

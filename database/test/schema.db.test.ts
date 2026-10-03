@@ -57,7 +57,7 @@ beforeEach(async () => {
 describe("migrations", () => {
   it("are recorded and re-running applies nothing", async () => {
     const { rows } = await client.query("SELECT version FROM schema_migrations ORDER BY version");
-    expect(rows.map((r) => r.version)).toEqual(["0001"]);
+    expect(rows.map((r) => r.version)).toEqual(["0001", "0002"]);
     expect(await migrate(client, () => undefined)).toEqual([]);
   });
 

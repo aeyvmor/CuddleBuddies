@@ -1,6 +1,6 @@
 # AWS infrastructure (CDK, TypeScript)
 
-**Deployed (2026-10-04), dev account, `ap-southeast-1`:** `CDKToolkit`, `Astig-dev-Evidence`, `Astig-dev-App`. Deploys use the account owner's IAM Identity Center login (`aws sso login --profile astig`); no long-lived access keys exist. Expected cost is about **$1.05/day (~$31/month)** while the database runs. The budget alert is at $40/month.
+**Deployed (2026-10-04), dev account, `ap-southeast-1`:** `CDKToolkit`, `Astig-dev-Evidence`, `Astig-dev-App`. Deploys use the account owner's IAM Identity Center login (`aws sso login --profile astig`); no long-lived access keys exist. Expected cost is about **$1.05/day (~$31/month)** while the database runs, plus $24/month for one QuickSight Author once subscribed. The budget alert is at $60/month.
 
 ## Endpoints for clients (not secrets)
 
@@ -30,6 +30,16 @@ Send `Authorization: Bearer <Cognito access or ID token>`. Roles come from Cogni
 | Auth | Cognito user pool (Lite plan, no self sign-up), groups `OFFICER`/`OPERATOR`. HTTP API JWT authorizer on all routes except the CORS-preflight-only `OPTIONS` route. Throttled to 20 req/s, burst 40 |
 | Lambdas (Node 22, arm64, 7-day logs) | `Api`, `Persist`, `Admin` run inside the VPC. `Ingest` runs outside the VPC so it can reach the vision provider, and calls `Persist` for database writes |
 | Processing trigger | S3 `ObjectCreated` on `sessions/*.jpg` → `Ingest` → `Persist` |
+| Analytics | `AnalyticsExport` Lambda (in the VPC; runs every 15 min via EventBridge, or on demand) writes aggregate CSVs and QuickSight manifests to a **separate private analytics bucket** (`AnalyticsBucketName` output): `analytics/manifests/issues.json`, `analytics/manifests/sessions.json`. No images, free text, or user identifiers. |
+
+## Amazon QuickSight (executive analytics)
+
+QuickSight reads only the analytics bucket, never the evidence bucket or the database. The manifests are `s3://<AnalyticsBucketName>/analytics/manifests/issues.json` and `.../sessions.json`.
+
+- **Cost:** 1 Author at $24/month.
+- **Avoid the $250/month fee:** don't create Pro users, and don't enable Q&A (topics or dashboard Q&A).
+- **Demo refresh:** after a work-order change, invoke `AnalyticsExportFunctionName` (or wait up to 15 minutes), then click **Refresh now** on the QuickSight dataset.
+- **Cleanup:** cancel the QuickSight subscription after judging.
 
 ## Operating it (owner)
 
@@ -75,7 +85,7 @@ aws cognito-idp admin-add-user-to-group --user-pool-id ap-southeast-1_uYQoBKBkj 
 
 ## Teardown (after judging)
 
-1. `npx cdk destroy Astig-dev-App`. This deletes the database without a snapshot; the data is synthetic and can be re-seeded.
+1. `npx cdk destroy Astig-dev-App`. This deletes the database without a snapshot; the data is synthetic and can be re-seeded. Empty the analytics bucket first. Cancel QuickSight separately.
 2. Empty and delete the evidence bucket (it is retained by design), then `npx cdk destroy Astig-dev-Evidence`.
 3. Delete the `CDKToolkit` stack in CloudFormation, if nothing else uses it.
 

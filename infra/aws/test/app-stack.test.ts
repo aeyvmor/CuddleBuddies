@@ -48,20 +48,42 @@ describe("AppStack cost and network guardrails", () => {
     expect(endpoints.filter((e) => e.Properties.VpcEndpointType === "Gateway")).toHaveLength(1);
   });
 
-  it("only allows PostgreSQL into the database from the VPC Lambda security group", () => {
+  it("only allows PostgreSQL into the database from Lambda security groups (never a CIDR)", () => {
     const ingress = resources("AWS::EC2::SecurityGroupIngress").filter((r) => r.Properties.FromPort === 5432);
-    expect(ingress).toHaveLength(1);
-    expect(ingress[0]!.Properties.SourceSecurityGroupId).toBeDefined();
-    expect(ingress[0]!.Properties.CidrIp).toBeUndefined();
+    expect(ingress).toHaveLength(2); // VPC Lambdas + analytics export
+    for (const rule of ingress) {
+      expect(rule.Properties.SourceSecurityGroupId).toBeDefined();
+      expect(rule.Properties.CidrIp).toBeUndefined();
+    }
+  });
+});
+
+describe("AppStack analytics export", () => {
+  it("writes only to the analytics bucket prefix, on a 15-minute schedule", () => {
+    const exportFn = Object.entries(t.findResources("AWS::Lambda::Function")).find(([, f]: any) => f.Properties.Environment?.Variables?.ANALYTICS_BUCKET);
+    expect(exportFn).toBeDefined();
+    expect((exportFn![1] as any).Properties.VpcConfig).toBeDefined();
+    t.hasResourceProperties("AWS::Events::Rule", { ScheduleExpression: "rate(15 minutes)" });
+    const policies = JSON.stringify(t.findResources("AWS::IAM::Policy"));
+    expect(policies).toContain("/analytics/*");
+  });
+
+  it("keeps the analytics bucket private and TLS-only", () => {
+    t.hasResourceProperties("AWS::S3::Bucket", {
+      PublicAccessBlockConfiguration: { BlockPublicAcls: true, BlockPublicPolicy: true, IgnorePublicAcls: true, RestrictPublicBuckets: true },
+    });
+    t.hasResourceProperties("AWS::S3::BucketPolicy", {
+      PolicyDocument: { Statement: Match.arrayWith([Match.objectLike({ Effect: "Deny", Condition: { Bool: { "aws:SecureTransport": "false" } } })]) },
+    });
   });
 });
 
 describe("AppStack compute and access", () => {
-  it("puts API/persist/admin in the VPC and keeps ingest outside it", () => {
+  it("puts API/persist/admin/export in the VPC and keeps ingest outside it", () => {
     const fns = resources("AWS::Lambda::Function").filter((f) => f.Properties.Runtime === "nodejs22.x");
-    expect(fns).toHaveLength(4);
+    expect(fns).toHaveLength(5);
     const inVpc = fns.filter((f) => f.Properties.VpcConfig);
-    expect(inVpc).toHaveLength(3);
+    expect(inVpc).toHaveLength(4);
     const ingest = fns.find((f) => f.Properties.Environment?.Variables?.PERSIST_FUNCTION_NAME);
     expect(ingest?.Properties.VpcConfig).toBeUndefined();
     expect(ingest?.Properties.Environment.Variables.VISION_PROVIDER).toBe("none");

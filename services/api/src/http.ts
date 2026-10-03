@@ -2,6 +2,8 @@
 export interface ApiRequest {
   method: string;
   path: string;
+  /** Decoded query-string parameters (last value wins for repeated keys). */
+  query?: Record<string, string>;
   /** Lower-cased header names. */
   headers: Record<string, string | undefined>;
   body: string | null;
@@ -17,3 +19,10 @@ export interface ApiResponse {
 }
 
 export const MAX_BODY_BYTES = 16 * 1024;
+
+export function parseQueryString(raw: string | undefined | null): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!raw) return out;
+  for (const [k, v] of new URLSearchParams(raw)) out[k] = v;
+  return out;
+}

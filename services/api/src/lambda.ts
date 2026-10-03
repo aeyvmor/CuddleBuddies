@@ -1,12 +1,13 @@
 import { createPoolFromEnv } from "@astig/database";
 import { createApp } from "./app";
 import { loadConfig } from "./config";
-import type { ApiResponse } from "./http";
+import { parseQueryString, type ApiResponse } from "./http";
 import { S3EvidenceStorage } from "./s3-evidence";
 
 /** Minimal subset of the API Gateway HTTP API (payload v2.0) event used here. */
 interface HttpApiEventV2 {
   rawPath: string;
+  rawQueryString?: string;
   headers?: Record<string, string | undefined>;
   body?: string;
   isBase64Encoded?: boolean;
@@ -42,6 +43,7 @@ export async function lambdaHandler(event: HttpApiEventV2): Promise<ApiResponse>
   return handle({
     method: event.requestContext.http.method,
     path: event.rawPath,
+    query: parseQueryString(event.rawQueryString),
     headers,
     body,
     requestId: event.requestContext.requestId,

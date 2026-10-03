@@ -1,4 +1,5 @@
 import {
+  AnalyticsSummaryResponse,
   CreateWorkOrderRequest,
   CreateWorkOrderResponse,
   CreateSessionRequest,
@@ -6,6 +7,8 @@ import {
   EndSessionRequest,
   ErrorResponse,
   IssueDetailResponse,
+  IssueListQuery,
+  IssueListResponse,
   ObservationCaptureRequest,
   RegisterObservationResponse,
   SessionResponse,
@@ -23,6 +26,7 @@ import { ApiError, validationError } from "./errors";
 import type { EvidenceUploadSigner, EvidenceUrlSigner } from "./evidence";
 import { MAX_BODY_BYTES, type ApiRequest, type ApiResponse } from "./http";
 import { getIssueDetail } from "./repositories/issues";
+import { analyticsSummary, listIssues } from "./repositories/issue-list";
 import { createSession, endSession } from "./repositories/sessions";
 import { createUploadUrl } from "./repositories/uploads";
 import { createWorkOrder, updateWorkOrder } from "./repositories/work-orders";
@@ -91,6 +95,28 @@ export function createApp(deps: AppDeps): (req: ApiRequest) => Promise<ApiRespon
   const log = deps.log ?? ((entry) => console.log(JSON.stringify(entry)));
 
   const routes: Route[] = [
+    {
+      method: "GET",
+      name: "GET /issues",
+      pattern: /^\/issues$/,
+      role: "OFFICER",
+      handle: async ({ req }) => {
+        const parsed = IssueListQuery.safeParse(req.query ?? {});
+        if (!parsed.success) throw validationError(parsed.error, "Query parameters are invalid.");
+        const body = await readSnapshot(deps.pool, (c) => listIssues(c, parsed.data));
+        return { status: 200, body, schema: IssueListResponse };
+      },
+    },
+    {
+      method: "GET",
+      name: "GET /analytics/summary",
+      pattern: /^\/analytics\/summary$/,
+      role: "OFFICER",
+      handle: async () => {
+        const body = await readSnapshot(deps.pool, (c) => analyticsSummary(c));
+        return { status: 200, body, schema: AnalyticsSummaryResponse };
+      },
+    },
     {
       method: "GET",
       name: "GET /issues/{id}",
