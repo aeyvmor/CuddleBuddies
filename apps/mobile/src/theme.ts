@@ -70,6 +70,10 @@ export const size = {
   touchLarge: 64,
   /** The Stop button: the largest target on screen. */
   touchStop: 72,
+  /** Stop in the landscape side rail, where height is free. */
+  touchStopRail: 120,
+  /** Width of the landscape button rail. */
+  rail: 200,
   dot: 10,
   thumbnailW: 128,
   thumbnailH: 96,

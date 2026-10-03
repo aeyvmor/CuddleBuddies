@@ -88,6 +88,31 @@
   background: var(--color-accent-hover);
 }
 
+/* Outline / ghost button (DESIGN.md): secondary actions such as Clear filters or Previous/Next. */
+.buttonGhost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--size-touch);
+  padding: var(--space-2) var(--space-4);
+  border: 1.5px solid var(--color-control-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-body-md);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.buttonGhost:hover:not(:disabled) {
+  background: var(--color-surface-muted);
+  border-color: var(--color-accent);
+}
+.buttonGhost:disabled {
+  color: var(--color-text-muted);
+}
+
 .field {
   display: flex;
   flex-direction: column;

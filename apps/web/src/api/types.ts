@@ -4,15 +4,13 @@
  * Every shape the shared contract defines comes from @astig/contracts (draft v0,
  * docs/api/contract-v0-proposal.md). Do not redefine those here.
  *
- * The types in the LOCAL section exist only because the contract has no shape for
- * them yet (there is no GET /issues list route). Each one is tagged [gap Gn],
- * matching the "Contract gaps" table in apps/web/README.md. Delete them once
- * the backend owner adds the equivalent to packages/contracts.
+ * The LOCAL section holds only what the web needs that the contract does not shape
+ * for it: the filter subset of IssueListQuery and an Error subclass for the envelope.
  */
 import type {
   ErrorCode,
   ErrorResponse,
-  Issue,
+  IssueStatus,
   IssueType,
   SeverityEstimate,
   WorkOrderStatus,
@@ -41,28 +39,25 @@ export type {
   WorkOrderStatus,
 } from "@astig/contracts";
 
-// ---------------------------------------------------------------- LOCAL (gaps)
+// ---------------------------------------------------------------- LOCAL
 
 /**
- * [gap G1] One row of the issue list (map + list). The contract defines no list
- * response. `issue` is the contract's Issue; the other fields are the minimum
- * the list needs without fetching every issue detail.
+ * One row of the issue list (map + list): the contract's IssueListItem (GET /issues).
+ * The mock builds the same shape; the HTTP client (backend owner) will return it.
  */
-export interface IssueListItem {
-  issue: Issue;
-  /** [gap G2] Highest severityEstimate across the issue's completed detections; null if none. Issue has no severity field. */
-  severity: SeverityEstimate | null;
-  /** [gap G1] totalScore of the latest risk assessment; null if not scored yet. */
-  totalScore: number | null;
-  /** [gap G1] Status of the newest work order; null if the issue has none. */
-  workOrderStatus: WorkOrderStatus | null;
-}
+export type { IssueListItem } from "@astig/contracts";
 
-/** [gap G1] Query filters for the issue list. Field names follow contract casing. */
+/**
+ * Filters the UI can set. Names and values follow the contract's IssueListQuery; it is
+ * kept local because that query type also carries paging (limit, cursor) and bbox,
+ * which the HTTP client adds.
+ */
 export interface IssueListFilters {
   severity?: SeverityEstimate;
-  issueType?: IssueType;
+  /** The contract's list query excludes NONE. */
+  issueType?: Exclude<IssueType, "NONE">;
   areaName?: string;
+  status?: IssueStatus;
   /** NONE = issues with no work order. */
   workOrderStatus?: WorkOrderStatus | "NONE";
 }

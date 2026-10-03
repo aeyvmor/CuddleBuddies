@@ -25,7 +25,7 @@
                     "start":  "expo start --dev-client",
                     "android":  "expo run:android",
                     "typecheck":  "tsc --noEmit",
-                    "test":  "node --test src/distance.test.ts src/capture.test.ts src/motion.test.ts src/session.test.ts src/queue.test.ts src/trigger.test.ts src/permissions.test.ts",
+                    "test":  "node --test src/distance.test.ts src/capture.test.ts src/motion.test.ts src/session.test.ts src/queue.test.ts src/trigger.test.ts src/permissions.test.ts src/journal.test.ts",
                     "doctor":  "expo-doctor"
                 },
     "private":  true

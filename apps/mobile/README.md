@@ -20,15 +20,19 @@ The operator is a driver or PUV operator: start a session, mount the phone, don'
 
    Each permission shows a plain reason. If one is refused, the screen says what will not work and offers "Ask again", or "Open Settings" once Android stops asking. A session cannot start without both.
 2. **Active session** (`src/screens/ActiveScreen.tsx`), largest first:
-   - RECORDING and elapsed time;
-   - distance travelled;
-   - captured, failed and waiting-upload counts;
+   - RECORDING, vehicle and device labels, and elapsed time;
+   - distance travelled, and "Paused N times" if the app was off screen;
+   - captured, failed and "to upload" counts, with the time of the last photo and of the last failure;
    - GPS reported accuracy and speed, with "No GPS fix" when there is none;
    - the distance source in words, plus AR tracking state for the AR source;
+   - free storage and roughly how many more photos fit;
    - live view and latest-capture thumbnail;
-   - a large "Capture now" button and a larger red "Stop session" button with a confirmation dialog. Android Back opens the same confirmation.
+   - "Capture now" and a larger red "Stop session", both 72 dp, which asks for confirmation. Android Back opens the same confirmation.
 
-   The screen stays awake during a session. It works in portrait and landscape, with two columns in landscape.
+   The screen stays awake during a session.
+   - **Portrait:** the two buttons share one row at the bottom, so status, distance, counts, GPS, speed and source fit above them without scrolling **[measured on the Redmi at 1.0× font]**.
+   - **Landscape (dashboard mount):** the cards are paired two per row. The buttons sit in a side rail, Capture at the top and Stop (120 dp tall) at the bottom, far apart.
+   - **Safe areas:** content stays out from under the status bar and, in landscape, the side navigation bar.
 
 **Distance sources.** Each is labelled as what it is, and each sets the `samplingMethod` on every capture its trigger takes. A tap on "Capture now" is always recorded as `MANUAL` with `distanceFromPreviousM: null`, whatever the source: a tap makes no distance claim.
 
@@ -47,21 +51,45 @@ The screens make no accuracy claim for any source. The only accuracy figure show
 There is no timer-based capture. A 250 ms tick only re-evaluates the distance trigger between GPS fixes, and the trigger is skipped while a capture is in flight, so an interval is never consumed without an attempt. A fix older than 10 s is not attached to a photo: the capture is recorded as failed (`NO_LOCATION_FIX`), never given a stale position.
 
 **Local session and queue.** There is no upload in this build. The screens say so, and they show no upload progress, network state or "synced" indicator.
-- **Queue entries (`src/queue.ts`):** each attempt becomes one entry. `CAPTURED` holds the image and its contract-shaped `observation-capture.v0` record (`src/capture.ts`) with `upload: { state: "PENDING" }`. `FAILED` holds the reason. A failure is never converted into a capture.
+- **Queue entries (`src/queue.ts`):** each attempt becomes one entry. `CAPTURED` holds the image (with its size in bytes, which the upload route will need) and its contract-shaped `observation-capture.v0` record (`src/capture.ts`) with `upload: { state: "PENDING" }`. `FAILED` holds the reason. A failure is never converted into a capture.
 - **Images:** moved out of the cache into the app's private `captures/` folder, named by `clientObservationId`. They are never put in the gallery.
-- **Adding an uploader later:** read `pendingUploads()` and extend `UploadState`. The screens already show "waiting upload" from that state.
+- **Low storage:** checked before every photo (`src/storageGuard.ts`).
+  - Below 500 MB free, the capture is refused and recorded as a `LOW_STORAGE` failure. Capture now is disabled, and a red "Storage full: photos stopped" chip appears.
+  - Below 2 GB, an amber "Phone storage low" chip appears.
+  - The "room for about N more photos" estimate uses the average size of this session's photos.
+- **Adding an uploader later:** read `pendingUploads()` and extend `UploadState`; upload progress can be appended to the journal as new line kinds. The screens already show "to upload" from that state.
 - **Session state (`src/session.ts`):** `IDLE → ACTIVE → STOPPING → ENDED → IDLE`. `STOPPING` waits for an in-flight capture to settle before ending.
-- **Saving:** session and queue are saved to the app's private storage after every change (`src/storage.ts`, write-then-replace) and every 15 s while running.
+- **Saving (`src/storage.ts`):**
+  - Capture records are **appended** to `astig-queue.jsonl`, one JSON record per line (`src/journal.ts`). Each capture costs one small append, however long the route.
+  - The session and settings are in `astig-state.json`. It is small (about 0.5–0.9 KB, measured) and rewritten write-then-replace on each change and every 15 s.
+  - A line torn by a crash is counted and reported on the setup screen, never guessed. The saved sequence number is reconciled with the journal, so a number is never reused.
+  - A v1 state file, from the first build, which kept the queue inside it, is migrated into the journal once at launch.
 - **Rotation:** the activity is not recreated (`configChanges` includes orientation), so state persists.
 - **Backgrounding:** recorded as a gap. Camera and location stop in the background; there is no background-location permission. GPS speed distance does not bridge gaps over 5 s, so nothing is invented.
-- **App restart:** the running session resumes. The downtime is recorded as an `APP_NOT_RUNNING` gap, and the last shown distance is carried forward. The active screen shows "Paused N time(s)".
+- **App restart:** the running session resumes. The downtime is recorded as an `APP_NOT_RUNNING` gap, and the last shown distance is carried forward. The active screen shows "Paused N times". Interruptions less than 5 s apart count as one pause covering both. On the phone, a reinstall had produced two pauses (the app left the screen, then was stopped), which this fixes.
 - **Unreadable saved data:** reported on the setup screen, and the file is moved aside, not deleted.
+- **Timing logs:** `ASTIG_PERF` lines in logcat (`adb logcat -s ReactNativeJS:V`) give load, capture, keep, journal-append and state-save times. They hold no coordinates or image content.
 
 **Theme.** `src/theme.ts` follows the Civic Pulse direction, with token names matching `apps/web/src/styles/tokens.css` where they apply. Components read only from the theme.
 - As on the web, brand green `#00B14F` is decoration only. Text and filled buttons use `#006E2E`, and muted text is `#475569`.
-- The type scale is larger than the web's, for reading at arm's length. Touch targets are at least 48 dp: 64 dp for Capture, 72 dp for Stop.
+- The type scale is larger than the web's, for reading at arm's length. Touch targets are at least 48 dp: 72 dp for Capture and Stop. Counter labels stay on one line, shrinking slightly rather than breaking mid-word, at large system font sizes.
 - Every status colour is paired with words.
 - Plus Jakarta Sans is **not bundled**, so the app uses the Android system font (Roboto).
+
+**Device run-through (2026-10-04, Redmi Note 15 Pro 5G, Android 16, release build, indoors) [measured]:**
+
+| Check | Result |
+| --- | --- |
+| 15 rapid taps on Capture now (about 0.4 s apart) | 15 captured, 0 failed. Photo 343–450 ms, move to private folder 8–42 ms, journal append 2–12 ms, state save 6–83 ms. Photos were 0.58–0.61 MB each, at 3060×4080, in a dim room, so outdoor photos will likely be larger. |
+| Launch with 18 then 33 saved records | Load 6–16 ms, including the one-time v1 → journal migration. |
+| Rotation to landscape and back | Session, clock and counts unchanged. Side rail and paired cards shown. |
+| Home for 10–20 s, then return; app killed and relaunched; reinstall | Session resumed with the same counts each time, and each interruption counted as one pause. |
+| Stop | Dialog with "Keep recording" / "Stop session". Back opens the same dialog. Keep recording continues. Stop shows the "Last session ended" summary (time, captured, failed, waiting). |
+| Camera permission refused | "Camera: blocked", with what will not work and the Open Settings steps. Start explains that it needs camera and location. |
+| System font 1.3× | Portrait and landscape readable. Fixed: the counter label broke as "CAPTUR / ED", and the vehicle/device labels wrapped one word per line. |
+| Storage line | "86 GB free · room for about 154,000 more photos". The low and full thresholds are unit-tested only; the phone was not filled. |
+
+Not checked on the phone: an outdoor or vehicle run, distance-triggered captures, the low-storage refusal, and whether the live view shows an image (it was black in every screenshot, probably because the phone was lying face down).
 
 **Dependencies added in this phase:**
 - `react-native-safe-area-context` (~5.7.0): a **new native module**. Edge-to-edge is on (React Native 0.86 default), so content would otherwise sit under the status and navigation bars, including the Stop button.
@@ -86,7 +114,7 @@ The spike screen moved, unchanged in behavior, from `App.tsx` to `src/screens/Di
 - "Reset distances" and "Report" (prints a JSON summary with the error against a tape-measured reference, tagged `ASTIG_SPIKE` in logcat);
 - an event log of AppState changes, GPS fix gaps over 5 s, and VIO tracking changes.
 
-Distance logic is in `src/distance.ts`, capture metadata in `src/capture.ts` and the motion gate in `src/motion.ts`. The capture app adds `src/session.ts`, `src/queue.ts`, `src/trigger.ts`, `src/sources.ts`, `src/permissions.ts` and `src/persist.ts`. Each pure module has tests beside it: 64 tests in total.
+Distance logic is in `src/distance.ts`, capture metadata in `src/capture.ts` and the motion gate in `src/motion.ts`. The capture app adds `src/session.ts`, `src/queue.ts`, `src/trigger.ts`, `src/sources.ts`, `src/permissions.ts`, `src/persist.ts`, `src/journal.ts` and `src/storageGuard.ts`. Each pure module has tests beside it: 76 tests in total.
 
 Commands (from `apps/mobile`): `npm install`, `npm test`, `npm run typecheck`. For the release build that runs unplugged, run `gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a` in `android/`, then `adb install -r app/build/outputs/apk/release/app-release.apk`. After changing `app.json`, run `npx expo prebuild --platform android --no-install --no-clean`.
 
@@ -110,7 +138,7 @@ It is unit-tested only. Indoors it reads nothing (no speed). It has never been r
 | `npx expo --version` | 57.0.27; runs on Node 24 |
 | `npx expo-doctor` | 21/21 checks passed |
 | `npx tsc --noEmit` | passes |
-| `npm test` (`node --test`) | 64 pass (29 spike + 35 capture app) |
+| `npm test` (`node --test`) | 76 pass (29 spike + 47 capture app) |
 | `npx expo export --platform android` | JS bundle builds (Hermes, 2.2 MB) |
 | `npx expo prebuild --platform android --no-install` | native project generated. Manifest has CAMERA, FINE/COARSE location, and ARCore `optional` meta-data. No background-location permission. |
 | JDK | OpenJDK 21.0.12; Gradle release build succeeds (12 min first build, under 2 min after). |

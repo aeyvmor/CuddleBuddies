@@ -16,7 +16,7 @@ function ObservationCard({ o }: { o: IssueObservation }) {
       <p className={styles.head}>
         <Icon name="camera" className={styles.headIcon} />
         Captured {formatUtc(o.capturedAt)}
-        {o.isSynthetic && <DemoBadge />}
+        {o.isSynthetic && <DemoBadge compact />}
       </p>
       {/* Capture frame: the image when access is granted, otherwise an explicit reason. Never a stand-in photo. */}
       <div className={styles.frame}>

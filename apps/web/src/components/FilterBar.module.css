@@ -1,9 +1,15 @@
 .bar {
   composes: card from "../styles/primitives.module.css";
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   margin: 0;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-4);
 }
 
 .field {
@@ -31,8 +37,40 @@
   box-shadow: inset 0 0 0 2px var(--color-accent);
 }
 
+/* A set filter is marked by a thicker ring and the mint fill; the selected text says which value. */
+.select[data-active] {
+  background-color: var(--color-surface-mint);
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  min-height: var(--size-touch);
+}
+
+.result {
+  margin: 0;
+  font-size: var(--font-size-body-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.clear {
+  composes: buttonGhost from "../styles/primitives.module.css";
+}
+
+@media (max-width: 1200px) {
+  .fields {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 760px) {
-  .bar {
+  .fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

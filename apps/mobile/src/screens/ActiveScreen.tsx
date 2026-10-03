@@ -10,6 +10,7 @@ import { CameraView } from "expo-camera";
 import { FAILURE_TEXT, type CapturedEntry, type FailedEntry, type QueueCounts, type QueueEntry } from "../queue";
 import { elapsedMs, formatDistance, formatElapsed, type SessionPhase, type SessionRecord } from "../session";
 import { SOURCES } from "../sources";
+import { formatBytes, formatCount, photosRemaining, storageLevel, type PhotoStats } from "../storageGuard";
 import { theme } from "../theme";
 import { Button, Card, Chip, Muted, Stat } from "../ui";
 import { MAX_FIX_AGE_MS } from "../trigger";
@@ -22,6 +23,7 @@ interface Props {
   session: SessionRecord;
   phase: Extract<SessionPhase, "ACTIVE" | "STOPPING">;
   counts: QueueCounts;
+  photos: PhotoStats;
   latest: CapturedEntry | null;
   latestFailure: FailedEntry | null;
   onEntry: (e: QueueEntry) => void;
@@ -36,6 +38,7 @@ interface Props {
 }
 
 const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+const clockSeconds = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
 export function ActiveScreen(props: Props) {
   const { session, phase, counts } = props;
@@ -94,16 +97,18 @@ export function ActiveScreen(props: Props) {
 
   const status = (
     <Card style={styles.statusCard}>
-      <View style={styles.rowBetween}>
+      <View style={styles.statusRow}>
         <Chip label={stopping ? "STOPPING" : "RECORDING"} tone={stopping ? "neutral" : "ok"} />
-        <Muted>Started {clock(session.startedAt)}</Muted>
+        <Muted style={styles.labels} numberOfLines={1}>
+          {session.config.vehicleLabel} · {session.config.deviceLabel}
+        </Muted>
       </View>
-      <Text style={styles.elapsed} accessibilityLabel={`Session running for ${elapsed}`} maxFontSizeMultiplier={1.3}>
-        {elapsed}
-      </Text>
-      <Muted>
-        {session.config.vehicleLabel} · {session.config.deviceLabel}
-      </Muted>
+      <View style={styles.elapsedRow}>
+        <Text style={styles.elapsed} accessibilityLabel={`Session running for ${elapsed}, since ${clock(session.startedAt)}`} maxFontSizeMultiplier={1.3}>
+          {elapsed}
+        </Text>
+        <Muted>since {clock(session.startedAt)}</Muted>
+      </View>
     </Card>
   );
 
@@ -119,9 +124,9 @@ export function ActiveScreen(props: Props) {
       )}
       {info.autoCapture && <Muted>A photo every {session.config.intervalM} m of distance travelled.</Muted>}
       {session.gaps.length > 0 && (
-        <View style={styles.notice}>
-          <Chip label={`Paused ${session.gaps.length} time(s)`} tone="warning" />
-          <Muted>While the app was not on screen, nothing was measured or captured.</Muted>
+        <View style={styles.sourceRow}>
+          <Chip label={`Paused ${session.gaps.length} ${session.gaps.length === 1 ? "time" : "times"}`} tone="warning" />
+          <Muted>Not measured while off screen.</Muted>
         </View>
       )}
     </Card>
@@ -132,16 +137,24 @@ export function ActiveScreen(props: Props) {
       <View style={styles.statsRow}>
         <Stat label="Captured" value={String(counts.captured)} />
         <Stat label="Failed" value={String(counts.failed)} tone={counts.failed > 0 ? "danger" : "plain"} />
-        <Stat label="Waiting upload" value={String(counts.waitingUpload)} />
+        <Stat label="To upload" value={String(counts.waitingUpload)} spoken={`Waiting to upload: ${counts.waitingUpload}`} />
       </View>
+      {props.latest && <Muted>Last photo {clockSeconds(props.latest.request.capturedAt)}</Muted>}
       {props.latestFailure && (
         <Text style={styles.failure} accessibilityLiveRegion="polite">
-          Last failure {clock(props.latestFailure.attemptedAt)}: {FAILURE_TEXT[props.latestFailure.reason]}
+          Last failure {clockSeconds(props.latestFailure.attemptedAt)}: {FAILURE_TEXT[props.latestFailure.reason]}
         </Text>
       )}
-      <Muted>Upload is not connected in this build. Captures are kept on this phone.</Muted>
+      <Muted>Upload not connected in this build.</Muted>
     </Card>
   );
+
+  const level = storageLevel(live.freeBytes);
+  const remaining = photosRemaining(live.freeBytes, props.photos.averageBytes);
+  const storageText =
+    live.freeBytes === null
+      ? "Free storage not reported"
+      : `${formatBytes(live.freeBytes)} free${remaining !== null ? ` · room for about ${formatCount(remaining)} more photos` : ""}`;
 
   const gpsCard = (
     <Card>
@@ -163,6 +176,11 @@ export function ActiveScreen(props: Props) {
       <View style={styles.sourceRow}>
         <Text style={styles.sourceText}>Distance source: {info.activeLabel}</Text>
         {info.id === "AR_VIO" && <Chip label={live.vioTracking === "NORMAL" ? "AR tracking" : "AR tracking lost"} tone={live.vioTracking === "NORMAL" ? "ok" : "warning"} />}
+      </View>
+      <View style={styles.sourceRow}>
+        {level === "FULL" && <Chip label="Storage full: photos stopped" tone="danger" />}
+        {level === "LOW" && <Chip label="Phone storage low" tone="warning" />}
+        <Muted>{storageText}</Muted>
       </View>
     </Card>
   );
@@ -190,17 +208,19 @@ export function ActiveScreen(props: Props) {
     </Card>
   );
 
+  // Portrait: one row under the cards. Landscape (a dashboard mount): a rail on the side, so the
+  // cards keep the full height. Stop is the larger, red one and always asks before stopping.
   const actions = (
-    <View style={[styles.actions, { paddingBottom: props.bottomInset + space[3] }, landscape && styles.actionsLandscape]}>
+    <View style={landscape ? [styles.rail, { paddingBottom: props.bottomInset + space[3] }] : [styles.actions, { paddingBottom: props.bottomInset + space[3] }]}>
       <Button
         kind="secondary"
         label={live.busy ? "Capturing…" : "Capture now"}
         accessibilityLabel="Capture a photo now"
         accessibilityHint="Recorded as a manual capture"
         onPress={live.captureNow}
-        disabled={stopping || live.busy}
-        height={size.touchLarge}
-        style={landscape ? styles.flex1 : undefined}
+        disabled={stopping || live.busy || level === "FULL"}
+        height={size.touchStop}
+        style={landscape ? styles.railButton : styles.captureButton}
       />
       <Button
         kind="danger"
@@ -209,27 +229,28 @@ export function ActiveScreen(props: Props) {
         accessibilityHint="Asks for confirmation"
         onPress={confirmStop}
         disabled={stopping}
-        height={size.touchStop}
-        style={landscape ? styles.flex1 : undefined}
+        height={landscape ? size.touchStopRail : size.touchStop}
+        style={landscape ? styles.railButton : styles.stopButton}
       />
     </View>
   );
 
   return (
-    <View style={styles.screen}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: props.topInset + space[3] }]}>
+    <View style={[styles.screen, landscape && styles.landscapeRow]}>
+      <ScrollView style={styles.flex1} contentContainerStyle={[styles.content, { paddingTop: props.topInset + space[3] }]}>
         {landscape ? (
-          <View style={styles.columns}>
-            <View style={styles.column}>
-              {status}
-              {distance}
-              {counters}
+          // Pairs, read left to right then down: elapsed | distance, counts | GPS, then the views.
+          <>
+            <View style={styles.columns}>
+              <View style={styles.column}>{status}</View>
+              <View style={styles.column}>{distance}</View>
             </View>
-            <View style={styles.column}>
-              {gpsCard}
-              {media}
+            <View style={styles.columns}>
+              <View style={styles.columnWide}>{counters}</View>
+              <View style={styles.column}>{gpsCard}</View>
             </View>
-          </View>
+            {media}
+          </>
         ) : (
           <>
             {status}
@@ -250,10 +271,16 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: space[4], paddingBottom: space[4], gap: space[3] },
   columns: { flexDirection: "row", gap: space[3] },
   column: { flex: 1, gap: space[3] },
+  /** Three counters need more width than two GPS values. */
+  columnWide: { flex: 1.5, gap: space[3] },
   flex1: { flex: 1 },
   fill: StyleSheet.absoluteFill,
   statusCard: { gap: space[2] },
   rowBetween: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space[2] },
+  /** Moves under the chip when it does not fit beside it (narrow column, large font); one line at most. */
+  labels: { flexGrow: 1, textAlign: "right" },
+  statusRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: space[2] },
+  elapsedRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", columnGap: space[3] },
   elapsed: { fontFamily: font.family, fontSize: font.size.displayMd, fontWeight: font.weight.heavy, color: color.text, fontVariant: ["tabular-nums"] },
   stat: { flex: 1, gap: space[1] },
   statLabel: { fontFamily: font.family, fontSize: font.size.labelSm, fontWeight: font.weight.semibold, color: color.textMuted, textTransform: "uppercase", letterSpacing: font.tracking.label },
@@ -261,7 +288,6 @@ const styles = StyleSheet.create({
   notMeasured: { fontFamily: font.family, fontSize: font.size.headlineMd, fontWeight: font.weight.bold, color: color.textMuted },
   statsRow: { flexDirection: "row", gap: space[3] },
   failure: { fontFamily: font.family, fontSize: font.size.bodyMd, fontWeight: font.weight.bold, color: color.danger },
-  notice: { gap: space[2] },
   sourceRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space[2] },
   sourceText: { fontFamily: font.family, fontSize: font.size.bodyLg, fontWeight: font.weight.semibold, color: color.text },
   mediaCard: { padding: space[3] },
@@ -282,6 +308,27 @@ const styles = StyleSheet.create({
     fontSize: font.size.labelSm,
     fontWeight: font.weight.semibold,
   },
-  actions: { paddingHorizontal: space[4], paddingTop: space[3], gap: space[3], backgroundColor: color.surface, borderTopWidth: size.borderHairline, borderTopColor: color.border },
-  actionsLandscape: { flexDirection: "row" },
+  actions: {
+    flexDirection: "row",
+    paddingHorizontal: space[4],
+    paddingTop: space[3],
+    gap: space[4],
+    backgroundColor: color.surface,
+    borderTopWidth: size.borderHairline,
+    borderTopColor: color.border,
+  },
+  captureButton: { flex: 1, paddingHorizontal: space[2] },
+  stopButton: { flex: 1.3, paddingHorizontal: space[2] },
+  landscapeRow: { flex: 1, flexDirection: "row" },
+  railButton: { paddingHorizontal: space[2] },
+  /** Capture at the top, Stop at the bottom: far apart, so one is not pressed for the other. */
+  rail: {
+    width: size.rail,
+    justifyContent: "space-between",
+    paddingHorizontal: space[3],
+    paddingTop: space[3],
+    backgroundColor: color.surface,
+    borderLeftWidth: size.borderHairline,
+    borderLeftColor: color.border,
+  },
 });

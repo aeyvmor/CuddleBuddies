@@ -7,6 +7,8 @@ interface Props {
   items: IssueListItem[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** Shown when there are no markers. */
+  emptyText?: string;
 }
 
 /** Marker letter, so severity is never conveyed by colour alone. */
@@ -24,7 +26,7 @@ const LEGEND: (SeverityEstimate | "UNKNOWN")[] = ["CRITICAL", "HIGH", "MODERATE"
  * Schematic map. The real map provider is undecided; keep this component's props
  * as the seam so a provider-backed map can replace it without touching callers.
  */
-export function IssueMap({ items, selectedId, onSelect }: Props) {
+export function IssueMap({ items, selectedId, onSelect, emptyText = "No issues match the current filters." }: Props) {
   const pts = projectPoints(items.map((i) => i.issue.location));
   return (
     <section className={styles.map} aria-labelledby="issue-map-title">
@@ -37,7 +39,7 @@ export function IssueMap({ items, selectedId, onSelect }: Props) {
       </div>
       <div className={styles.stage}>
         <div className={styles.canvas}>
-          {items.length === 0 && <p className={styles.empty}>No issues match the current filters.</p>}
+          {items.length === 0 && <p className={styles.empty}>{emptyText}</p>}
           <div className={styles.plot}>
           {items.map((item, idx) => {
             const p = pts[idx]!;

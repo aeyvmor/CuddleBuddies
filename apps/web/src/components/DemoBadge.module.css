@@ -12,3 +12,12 @@
   letter-spacing: 0.06em;
   white-space: nowrap;
 }
+
+/* Same colours and words, smaller, for every row of a list. */
+.compact {
+  composes: badge;
+  padding: 0 var(--space-2);
+  border-width: 1.5px;
+  letter-spacing: 0.03em;
+  line-height: 1.5;
+}

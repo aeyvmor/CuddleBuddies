@@ -10,7 +10,7 @@
  */
 import type { CaptureRequest, SamplingMethod } from "./capture.ts";
 
-export type FailureReason = "NO_LOCATION_FIX" | "IMAGE_FAILED" | "IMAGE_NOT_SAVED";
+export type FailureReason = "NO_LOCATION_FIX" | "IMAGE_FAILED" | "IMAGE_NOT_SAVED" | "LOW_STORAGE";
 
 /** Extend with UPLOADING / UPLOADED / UPLOAD_FAILED when an uploader exists. */
 export type UploadState = { state: "PENDING" };
@@ -20,6 +20,8 @@ export interface StoredImage {
   width: number;
   height: number;
   source: "CAMERA" | "AR_FRAME";
+  /** File size; the upload route needs it (contentLengthBytes). Absent on records saved before it was recorded. */
+  bytes?: number | null;
 }
 
 export interface CapturedEntry {
@@ -90,4 +92,5 @@ export const FAILURE_TEXT: Record<FailureReason, string> = {
   NO_LOCATION_FIX: "No GPS fix",
   IMAGE_FAILED: "Camera did not return a photo",
   IMAGE_NOT_SAVED: "Photo could not be saved",
+  LOW_STORAGE: "Phone storage almost full",
 };

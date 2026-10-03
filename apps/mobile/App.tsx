@@ -14,7 +14,7 @@ import * as Location from "expo-location";
 import { useKeepAwake } from "expo-keep-awake";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { allGranted, type PermissionKind, type PermissionSnapshot } from "./src/permissions";
-import { emptyPersisted, type PersistedState } from "./src/persist";
+import { emptyPersisted, type AppData } from "./src/persist";
 import { addEntry, latestCaptured, latestFailure, queueCounts, type QueueEntry } from "./src/queue";
 import {
   beginStop,
@@ -32,7 +32,8 @@ import {
   startSession,
   type SessionConfig,
 } from "./src/session";
-import { loadState, saveState } from "./src/storage";
+import { appendEntry, loadAll, saveState } from "./src/storage";
+import { photoStats } from "./src/storageGuard";
 import { theme } from "./src/theme";
 import { ActiveScreen } from "./src/screens/ActiveScreen";
 import { DiagnosticsScreen } from "./src/screens/DiagnosticsScreen";
@@ -40,6 +41,7 @@ import { SetupScreen, type EndedSummary } from "./src/screens/SetupScreen";
 
 /** Saved distance is refreshed at most this often while moving (each capture also saves). */
 const DISTANCE_SAVE_MS = 15_000;
+const PERF_TAG = "ASTIG_PERF";
 
 function KeepAwake() {
   useKeepAwake("astig-session");
@@ -47,20 +49,29 @@ function KeepAwake() {
 }
 
 /** Read saved state once at launch. A session that was running when the app stopped is resumed, with the downtime recorded. */
-function initialState(): { state: PersistedState; warning: string | null } {
+function initialState(): { state: AppData; warning: string | null } {
   const now = new Date();
-  const loaded = loadState();
-  if (loaded.status === "NONE") return { state: emptyPersisted(now), warning: null };
-  if (loaded.status === "UNREADABLE") {
-    const where = loaded.savedAside ? " The damaged file was kept for the team to inspect." : "";
-    return { state: emptyPersisted(now), warning: `Previous sessions and captures could not be loaded (${loaded.error}).${where} New captures are saved normally.` };
+  const t0 = Date.now();
+  const loaded = loadAll();
+  const warnings = [...loaded.warnings];
+  let state: AppData;
+  if (loaded.status === "OK") {
+    const s = loaded.data;
+    const savedAt = new Date(s.savedAt);
+    let session = resumeAfterRestart(s.session, savedAt, s.lastDistanceM, now);
+    // The app stopped while a stop was in progress: finish it at the time it was last saved.
+    if (session.phase === "STOPPING") session = finishStop(session, savedAt);
+    state = { ...s, session };
+  } else {
+    state = { ...emptyPersisted(now), queue: loaded.queue };
+    if (loaded.status === "UNREADABLE") {
+      const where = loaded.savedAside ? " The damaged file was kept for the team to inspect." : "";
+      warnings.unshift(`The previous session could not be loaded (${loaded.error}).${where} New captures are saved normally.`);
+    }
   }
-  const s = loaded.state;
-  const savedAt = new Date(s.savedAt);
-  let session = resumeAfterRestart(s.session, savedAt, s.lastDistanceM, now);
-  // The app stopped while a stop was in progress: finish it at the time it was last saved.
-  if (session.phase === "STOPPING") session = finishStop(session, savedAt);
-  return { state: { ...s, session }, warning: null };
+  const gapInfo = state.session.phase === "IDLE" ? "none" : state.session.session.gaps.map((g) => `${g.reason}:${g.to ? Math.round((Date.parse(g.to) - Date.parse(g.from)) / 1000) : "open"}s`).join(",");
+  console.log(`${PERF_TAG} load ms=${Date.now() - t0} records=${state.queue.length} gaps=${gapInfo}`);
+  return { state, warning: warnings.length > 0 ? warnings.join(" ") : null };
 }
 
 const snapshot = (p: { granted: boolean; status: string; canAskAgain: boolean }): PermissionSnapshot => ({ granted: p.granted, status: p.status, canAskAgain: p.canAskAgain });
@@ -68,7 +79,7 @@ const snapshot = (p: { granted: boolean; status: string; canAskAgain: boolean })
 function Root() {
   const insets = useSafeAreaInsets();
   const [boot] = useState(initialState);
-  const [state, setState] = useState<PersistedState>(boot.state);
+  const [state, setState] = useState<AppData>(boot.state);
   const [screen, setScreen] = useState<"MAIN" | "DIAGNOSTICS">("MAIN");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [camera, setCamera] = useState<PermissionSnapshot | null>(null);
@@ -77,9 +88,12 @@ function Root() {
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  const persist = useCallback((s: PersistedState) => {
+  /** Small state file only; capture records are appended to the journal in onEntry. */
+  const persist = useCallback((s: AppData) => {
     try {
-      saveState({ ...s, savedAt: new Date().toISOString(), lastDistanceM: lastDistance.current });
+      const t0 = Date.now();
+      const bytes = saveState({ ...s, savedAt: new Date().toISOString(), lastDistanceM: lastDistance.current });
+      console.log(`${PERF_TAG} state_save ms=${Date.now() - t0} bytes=${bytes}`);
       setSaveError(null);
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : String(e));
@@ -99,6 +113,7 @@ function Root() {
     void refreshPermissions();
     const sub = AppState.addEventListener("change", (s) => {
       const now = new Date();
+      console.log(`${PERF_TAG} appstate ${s}`);
       if (s === "background") {
         setState((p) => ({ ...p, session: markBackground(p.session, now) }));
       } else if (s === "active") {
@@ -145,6 +160,15 @@ function Root() {
   }
 
   const onEntry = useCallback((e: QueueEntry) => {
+    // Write the record to the journal first; it is the durable copy. A refused write is shown, and the
+    // record is still kept in memory so the counts on screen stay truthful for this run.
+    try {
+      const t0 = Date.now();
+      appendEntry(e);
+      console.log(`${PERF_TAG} journal_append ms=${Date.now() - t0} kind=${e.kind}`);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : String(err));
+    }
     setState((p) => ({
       ...p,
       queue: addEntry(p.queue, e),
@@ -163,8 +187,12 @@ function Root() {
     return <DiagnosticsScreen onBack={() => setScreen("MAIN")} />;
   }
 
+  // Edge-to-edge is on: keep content out from under the status bar, and in landscape out from
+  // under the navigation bar on the side. The bottom inset is handled by each screen's footer.
+  const safe = { paddingTop: insets.top, paddingLeft: insets.left, paddingRight: insets.right };
+
   const banner = saveError ? (
-    <View style={[styles.saveError, { paddingTop: insets.top + theme.space[2] }]}>
+    <View style={styles.saveError}>
       <Text style={styles.saveErrorText} accessibilityLiveRegion="assertive">
         Could not save to this phone: {saveError}. Captures from now on may be lost if the app closes.
       </Text>
@@ -174,13 +202,14 @@ function Root() {
   if (state.session.phase === "ACTIVE" || state.session.phase === "STOPPING") {
     const s = state.session.session;
     return (
-      <View style={styles.root}>
+      <View style={[styles.root, safe]}>
         <KeepAwake />
         {banner}
         <ActiveScreen
           session={s}
           phase={state.session.phase}
           counts={queueCounts(state.queue, s.clientSessionId)}
+          photos={photoStats(state.queue, s.clientSessionId)}
           latest={latestCaptured(state.queue, s.clientSessionId)}
           latestFailure={latestFailure(state.queue, s.clientSessionId)}
           onEntry={onEntry}
@@ -188,7 +217,7 @@ function Root() {
           onDistance={onDistance}
           onStop={() => setState((p) => ({ ...p, session: beginStop(p.session) }))}
           onStopped={() => setState((p) => (p.session.phase === "STOPPING" ? { ...p, session: finishStop(p.session, new Date()) } : p))}
-          topInset={saveError ? theme.space[2] : insets.top}
+          topInset={0}
           bottomInset={insets.bottom}
         />
       </View>
@@ -205,7 +234,7 @@ function Root() {
   }
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, safe]}>
       {banner}
       <SetupScreen
         initial={{
@@ -224,7 +253,7 @@ function Root() {
         onDiagnostics={() => setScreen("DIAGNOSTICS")}
         ended={ended}
         storageWarning={boot.warning}
-        topInset={saveError ? theme.space[2] : insets.top}
+        topInset={0}
         bottomInset={insets.bottom}
       />
     </View>
@@ -242,6 +271,6 @@ export default function App() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.color.canvas },
-  saveError: { backgroundColor: theme.color.danger, paddingHorizontal: theme.space[4], paddingBottom: theme.space[2] },
+  saveError: { backgroundColor: theme.color.danger, paddingHorizontal: theme.space[4], paddingVertical: theme.space[2] },
   saveErrorText: { color: theme.color.textOnAccent, fontSize: theme.font.size.bodyMd, fontWeight: theme.font.weight.bold },
 });

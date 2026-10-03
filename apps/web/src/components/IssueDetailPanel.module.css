@@ -11,6 +11,26 @@
   gap: var(--space-2);
 }
 
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.position {
+  margin-right: auto;
+  font-size: var(--font-size-body-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.navButton {
+  composes: buttonGhost from "../styles/primitives.module.css";
+}
+
 .crumbs {
   display: flex;
   flex-wrap: wrap;
@@ -141,5 +161,17 @@
   .fact {
     grid-template-columns: 1fr;
     gap: var(--space-1);
+  }
+}
+
+/* Narrow screens: position on its own line, the three buttons share the next one. */
+@media (max-width: 640px) {
+  .position {
+    flex-basis: 100%;
+  }
+  .navButton {
+    flex: 1 1 0;
+    padding-left: var(--space-2);
+    padding-right: var(--space-2);
   }
 }

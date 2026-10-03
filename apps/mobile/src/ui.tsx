@@ -20,8 +20,12 @@ export function SectionTitle({ children }: { children: ReactNode }) {
   );
 }
 
-export function Muted({ children, style }: { children: ReactNode; style?: StyleProp<TextStyle> }) {
-  return <Text style={[styles.muted, style]}>{children}</Text>;
+export function Muted({ children, style, numberOfLines }: { children: ReactNode; style?: StyleProp<TextStyle>; numberOfLines?: number }) {
+  return (
+    <Text style={[styles.muted, style]} numberOfLines={numberOfLines}>
+      {children}
+    </Text>
+  );
 }
 
 export type ChipTone = "ok" | "neutral" | "warning" | "danger";
@@ -80,8 +84,16 @@ export function Stat(props: { label: string; value: string; unit?: string; tone?
   const danger = props.tone === "danger";
   return (
     <View style={styles.stat} accessible accessibilityLabel={props.spoken ?? `${props.label}: ${props.value}${props.unit ? ` ${props.unit}` : ""}`}>
-      <Text style={styles.statLabel}>{props.label}</Text>
-      <Text style={[props.big ? styles.statValueBig : styles.statValue, danger && styles.dangerText]} maxFontSizeMultiplier={1.3} numberOfLines={1} adjustsFontSizeToFit>
+      {/* One line: a label that does not fit shrinks a little instead of breaking mid-word (large font, narrow column). */}
+      <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+        {props.label}
+      </Text>
+      <Text
+        style={[props.big ? styles.statValueBig : styles.statValue, danger && styles.dangerText, styles.statValueBottom]}
+        maxFontSizeMultiplier={1.3}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
         {props.value}
         {props.unit ? <Text style={styles.statUnit}> {props.unit}</Text> : null}
       </Text>
@@ -133,9 +145,9 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { fontFamily: font.family, fontSize: font.size.headlineSm, fontWeight: font.weight.bold, color: color.text },
   muted: { fontFamily: font.family, fontSize: font.size.bodySm, lineHeight: font.size.bodySm * font.lineHeight.body, color: color.textMuted },
-  chip: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: space[2], paddingVertical: space[1], paddingHorizontal: space[3], borderRadius: radius.pill },
+  chip: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", maxWidth: "100%", gap: space[2], paddingVertical: space[1], paddingHorizontal: space[3], borderRadius: radius.pill },
   dot: { width: size.dot, height: size.dot, borderRadius: radius.pill },
-  chipText: { fontFamily: font.family, fontSize: font.size.labelSm, fontWeight: font.weight.bold, letterSpacing: font.tracking.chip },
+  chipText: { flexShrink: 1, fontFamily: font.family, fontSize: font.size.labelSm, fontWeight: font.weight.bold, letterSpacing: font.tracking.chip },
   button: { borderRadius: radius.pill, alignItems: "center", justifyContent: "center", paddingHorizontal: space[5], paddingVertical: space[2] },
   buttonText: { fontFamily: font.family, fontSize: font.size.bodyLg, fontWeight: font.weight.bold, textAlign: "center" },
   disabled: { opacity: opacity.disabled },
@@ -144,5 +156,6 @@ const styles = StyleSheet.create({
   statValue: { fontFamily: font.family, fontSize: font.size.displaySm, fontWeight: font.weight.heavy, color: color.text },
   statValueBig: { fontFamily: font.family, fontSize: font.size.displayLg, fontWeight: font.weight.heavy, color: color.text, lineHeight: font.size.displayLg * font.lineHeight.tight },
   statUnit: { fontSize: font.size.headlineMd, fontWeight: font.weight.bold, color: color.accent },
+  statValueBottom: { marginTop: "auto" },
   dangerText: { color: color.danger },
 });

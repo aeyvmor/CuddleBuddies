@@ -63,17 +63,40 @@ test("backgrounding records a gap that closes on return, and is not opened twice
   assert.equal(gapMs(s.session, at(50)), 30_000);
 });
 
-test("a restart records the time the app was not running and carries the shown distance", () => {
+test("a restart after backgrounding is one pause, from leaving the screen until the app ran again", () => {
   const s = resumeAfterRestart(markBackground(active(), at(10)), at(20), 312.4, at(80));
   assert.ok(s.phase === "ACTIVE");
   assert.deepEqual(
     s.session.gaps.map((g) => [g.reason, g.from, g.to]),
-    [
-      ["BACKGROUND", at(10).toISOString(), at(20).toISOString()],
-      ["APP_NOT_RUNNING", at(20).toISOString(), at(80).toISOString()],
-    ],
+    [["APP_NOT_RUNNING", at(10).toISOString(), at(80).toISOString()]],
   );
   assert.equal(s.session.distanceCarriedM, 312.4);
+});
+
+test("a restart without a recorded background is one pause from the last save", () => {
+  const s = resumeAfterRestart(active(), at(20), 5, at(80));
+  assert.ok(s.phase === "ACTIVE");
+  assert.deepEqual(
+    s.session.gaps.map((g) => [g.reason, g.from, g.to]),
+    [["APP_NOT_RUNNING", at(20).toISOString(), at(80).toISOString()]],
+  );
+});
+
+test("interruptions less than 5 s apart count as one pause covering both (measured case: reinstall)", () => {
+  // Left the screen for 1 s, came back, was stopped 2 s later, restarted at 60 s.
+  let s = markForeground(markBackground(active(), at(10)), at(11));
+  s = resumeAfterRestart(s, at(13), 0, at(60));
+  assert.ok(s.phase === "ACTIVE");
+  assert.deepEqual(
+    s.session.gaps.map((g) => [g.reason, g.from, g.to]),
+    [["APP_NOT_RUNNING", at(10).toISOString(), at(60).toISOString()]],
+  );
+  // Two backgrounds 3 s apart are one pause; 10 s apart are two.
+  let b = markForeground(markBackground(active(), at(10)), at(20));
+  b = markForeground(markBackground(b, at(23)), at(30));
+  assert.ok(b.phase === "ACTIVE" && b.session.gaps.length === 1 && b.session.gaps[0]!.to === at(30).toISOString());
+  b = markForeground(markBackground(b, at(40)), at(45));
+  assert.ok(b.phase === "ACTIVE" && b.session.gaps.length === 2);
 });
 
 test("stopping closes any open gap", () => {

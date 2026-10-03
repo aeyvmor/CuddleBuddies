@@ -8,19 +8,43 @@ import { ScoreBreakdown } from "./ScoreBreakdown";
 import { WorkOrderPanel, type CreateInput } from "./WorkOrderPanel";
 import styles from "./IssueDetailPanel.module.css";
 
+/** Where this issue sits in the filtered queue, for Previous/Next. */
+export interface QueuePosition {
+  index: number;
+  total: number;
+  onPrevious: (() => void) | null;
+  onNext: (() => void) | null;
+}
+
 interface Props {
   detail: IssueDetailResponse;
   role: Role;
+  position: QueuePosition;
+  onClose: () => void;
   onCreateWorkOrder: (input: CreateInput) => Promise<void>;
   onAdvanceWorkOrder: (workOrderId: string, status: WorkOrderStatus) => Promise<void>;
 }
 
-export function IssueDetailPanel({ detail, role, onCreateWorkOrder, onAdvanceWorkOrder }: Props) {
+export function IssueDetailPanel({ detail, role, position, onClose, onCreateWorkOrder, onAdvanceWorkOrder }: Props) {
   const { issue, riskAssessment, observations } = detail;
   const severity = highestSeverity(observations);
   return (
     <article id="issue-detail" tabIndex={-1} className={styles.panel} aria-label={`Issue detail: ${label(issue.issueType)}`}>
       <header className={styles.header}>
+        <div className={styles.toolbar} role="group" aria-label="Issue navigation">
+          <span className={styles.position}>
+            Issue {position.index + 1} of {position.total} in the queue
+          </span>
+          <button type="button" className={styles.navButton} onClick={position.onPrevious ?? undefined} disabled={!position.onPrevious}>
+            <Icon name="chevronLeft" /> Previous
+          </button>
+          <button type="button" className={styles.navButton} onClick={position.onNext ?? undefined} disabled={!position.onNext}>
+            Next <Icon name="chevronRight" />
+          </button>
+          <button type="button" className={styles.navButton} onClick={onClose} aria-label="Close issue detail">
+            <Icon name="close" /> Close
+          </button>
+        </div>
         <p className={styles.crumbs}>
           <a className={styles.back} href="#issue-queue">
             <Icon name="arrowUp" /> Issue queue

@@ -53,11 +53,11 @@ test("adding an entry does not mutate the old queue", () => {
 });
 
 test("every failure reason has words", () => {
-  for (const r of ["NO_LOCATION_FIX", "IMAGE_FAILED", "IMAGE_NOT_SAVED"] as const) assert.ok(FAILURE_TEXT[r].length > 0);
+  for (const r of ["NO_LOCATION_FIX", "IMAGE_FAILED", "IMAGE_NOT_SAVED", "LOW_STORAGE"] as const) assert.ok(FAILURE_TEXT[r].length > 0);
 });
 
 test("saved state round-trips", () => {
-  const s = { ...emptyPersisted(at), queue: [captured("s1", 0), failed("s1")], recentVehicleLabels: ["Jeep 1"], lastDistanceM: 12.5 };
+  const s = { ...emptyPersisted(at), recentVehicleLabels: ["Jeep 1"], lastDistanceM: 12.5 };
   const r = parse(serialize(s));
   assert.ok(r.ok);
   assert.deepEqual(r.state, s);
@@ -66,11 +66,9 @@ test("saved state round-trips", () => {
 test("unreadable saved state is reported, not replaced", () => {
   assert.deepEqual(parse("{"), { ok: false, error: "not valid JSON" });
   assert.equal(parse(JSON.stringify({ version: "old" })).ok, false);
-  const broken = { ...emptyPersisted(at), queue: [{ kind: "CAPTURED" }] };
-  assert.deepEqual(parse(JSON.stringify(broken)), { ok: false, error: "queue entries" });
   const badSession = { ...emptyPersisted(at), session: { phase: "ACTIVE" } };
   assert.deepEqual(parse(JSON.stringify(badSession)), { ok: false, error: "session record" });
-  assert.equal(PERSIST_VERSION, "astig-mobile-state.v1");
+  assert.equal(PERSIST_VERSION, "astig-mobile-state.v2");
 });
 
 test("each source records its own samplingMethod; GPS is never VIO", () => {

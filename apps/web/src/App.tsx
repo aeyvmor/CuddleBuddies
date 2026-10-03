@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ApiClient } from "./api/client";
 import {
   ApiError,
@@ -11,9 +11,10 @@ import {
 import { DemoBadge } from "./components/DemoBadge";
 import { Icon } from "./components/Icon";
 import { SummaryTiles } from "./components/SummaryTiles";
+import { sortByPriority } from "./domain/filters";
 import { label } from "./domain/labels";
 import { FilterBar } from "./components/FilterBar";
-import { IssueDetailPanel } from "./components/IssueDetailPanel";
+import { IssueDetailPanel, type QueuePosition } from "./components/IssueDetailPanel";
 import { IssueList } from "./components/IssueList";
 import { IssueMap } from "./components/IssueMap";
 import type { CreateInput } from "./components/WorkOrderPanel";
@@ -26,13 +27,14 @@ interface Props {
 }
 
 function describe(e: unknown): string {
-  return e instanceof ApiError ? e.message : "Could not load data. Try again.";
+  return e instanceof ApiError ? e.message : "Could not load issues.";
 }
 
 export function App({ api, role, onRoleChange }: Props) {
   const [filters, setFilters] = useState<IssueListFilters>({});
-  const [items, setItems] = useState<IssueListItem[]>([]);
-  const [allItems, setAllItems] = useState<IssueListItem[]>([]);
+  /** Null until loaded, and after a failed load: never shown as "0 issues". */
+  const [items, setItems] = useState<IssueListItem[] | null>(null);
+  const [allItems, setAllItems] = useState<IssueListItem[] | null>(null);
   const [areas, setAreas] = useState<string[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<IssueDetailResponse | null>(null);
@@ -42,7 +44,7 @@ export function App({ api, role, onRoleChange }: Props) {
 
   const refresh = useCallback(() => setVersion((v) => v + 1), []);
 
-  // [gap G1/G5] Area options come from an unfiltered list call until the contract defines a source.
+  // Area options and summary tiles come from an unfiltered list call (the HTTP list response carries areaNames).
   useEffect(() => {
     let cancelled = false;
     api
@@ -52,7 +54,11 @@ export function App({ api, role, onRoleChange }: Props) {
         setAllItems(all);
         setAreas([...new Set(all.map((i) => i.issue.areaName).filter((a): a is string => a !== null))].sort());
       })
-      .catch((e) => !cancelled && setLoadError(describe(e)));
+      .catch((e) => {
+        if (cancelled) return;
+        setAllItems(null);
+        setLoadError(describe(e));
+      });
     return () => {
       cancelled = true;
     };
@@ -67,7 +73,11 @@ export function App({ api, role, onRoleChange }: Props) {
         setLoadError(null);
         setItems(list);
       })
-      .catch((e) => !cancelled && setLoadError(describe(e)));
+      .catch((e) => {
+        if (cancelled) return;
+        setItems(null);
+        setLoadError(describe(e));
+      });
     return () => {
       cancelled = true;
     };
@@ -97,9 +107,22 @@ export function App({ api, role, onRoleChange }: Props) {
     };
   }, [api, selectedId, role, version]);
 
-  const visible = items.some((i) => i.issue.id === selectedId);
+  /** Queue order drives the list and Previous/Next. */
+  const queue = useMemo(() => (items ? sortByPriority(items) : null), [items]);
+  const index = queue && selectedId ? queue.findIndex((i) => i.issue.id === selectedId) : -1;
+  const visible = index >= 0;
   const shownDetail = detail && visible && detail.issue.id === selectedId ? detail : null;
-  const anySynthetic = items.some((i) => i.issue.isSynthetic);
+  const anySynthetic = (allItems ?? items ?? []).some((i) => i.issue.isSynthetic);
+
+  const position: QueuePosition | null =
+    queue && visible
+      ? {
+          index,
+          total: queue.length,
+          onPrevious: index > 0 ? () => setSelectedId(queue[index - 1]!.issue.id) : null,
+          onNext: index < queue.length - 1 ? () => setSelectedId(queue[index + 1]!.issue.id) : null,
+        }
+      : null;
 
   // The detail renders below the map and queue, so bring it into view when a new issue opens.
   // Focus is not moved; the status region announces it and the skip link jumps to it.
@@ -114,8 +137,16 @@ export function App({ api, role, onRoleChange }: Props) {
   const shownTitle = shownDetail ? label(shownDetail.issue.issueType) : null;
   const [announcement, setAnnouncement] = useState("");
   useEffect(() => {
-    if (shownTitle) setAnnouncement(`Showing issue detail: ${shownTitle}.`);
-  }, [shownTitle, shownDetail?.issue.id]);
+    if (shownTitle && position) setAnnouncement(`Showing issue detail: ${shownTitle}, ${position.index + 1} of ${position.total}.`);
+    // position changes identity every render; index/total are what matter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shownTitle, shownDetail?.issue.id, position?.index, position?.total]);
+
+  const closeDetail = useCallback(() => {
+    setSelectedId(null);
+    setAnnouncement("Issue detail closed.");
+    document.getElementById("issue-queue")?.scrollIntoView?.({ block: "start" });
+  }, []);
 
   async function createWorkOrder(input: CreateInput) {
     if (!shownDetail?.riskAssessment) return;
@@ -132,6 +163,8 @@ export function App({ api, role, onRoleChange }: Props) {
     await api.updateWorkOrder(id, { status });
     refresh();
   }
+
+  const unavailable = loadError ? "Issues could not be loaded." : "Loading issues…";
 
   return (
     <div className={styles.app}>
@@ -175,7 +208,7 @@ export function App({ api, role, onRoleChange }: Props) {
           <Icon name="database" className={styles.sourceIcon} />
           <p className={styles.sourceText}>
             <span className={styles.sourceTitle}>Data source</span>
-            {anySynthetic ? "Synthetic demo records" : "Operations API"}
+            {allItems === null && items === null ? "Not loaded" : anySynthetic ? "Synthetic demo records" : "Operations API"}
           </p>
         </div>
       </aside>
@@ -206,23 +239,28 @@ export function App({ api, role, onRoleChange }: Props) {
           <div id="overview" className={styles.anchor}>
             <SummaryTiles items={allItems} />
           </div>
-          <FilterBar filters={filters} areas={areas} onChange={setFilters} />
+          <FilterBar filters={filters} areas={areas} shown={items?.length ?? null} total={allItems?.length ?? null} onChange={setFilters} />
           {loadError && (
-            <p role="alert" className={styles.error}>
-              {loadError}
-            </p>
+            <div role="alert" className={styles.errorRow}>
+              <p className={styles.errorText}>{loadError} Nothing below is current until this succeeds.</p>
+              <button type="button" className={styles.retry} onClick={refresh}>
+                <Icon name="refresh" /> Try again
+              </button>
+            </div>
           )}
           <div className={styles.board}>
-            <IssueMap items={items} selectedId={selectedId} onSelect={setSelectedId} />
+            <IssueMap items={queue ?? []} selectedId={selectedId} onSelect={setSelectedId} emptyText={queue ? undefined : unavailable} />
             <div id="issue-queue" className={styles.anchor}>
-              <IssueList items={items} selectedId={selectedId} onSelect={setSelectedId} />
+              <IssueList items={queue} selectedId={selectedId} onSelect={setSelectedId} unavailableText={unavailable} />
             </div>
           </div>
           <div ref={detailRef} className={styles.anchor}>
-            {shownDetail ? (
+            {shownDetail && position ? (
               <IssueDetailPanel
                 detail={shownDetail}
                 role={role}
+                position={position}
+                onClose={closeDetail}
                 onCreateWorkOrder={createWorkOrder}
                 onAdvanceWorkOrder={advanceWorkOrder}
               />
@@ -236,7 +274,7 @@ export function App({ api, role, onRoleChange }: Props) {
                   <Icon name="detail" />
                 </span>
                 <p className={styles.placeholderTitle}>No issue selected</p>
-                <p className={styles.placeholderText}>Select an issue to review its evidence.</p>
+                <p className={styles.placeholderText}>Select an issue on the map or in the queue to review its evidence.</p>
               </div>
             )}
           </div>

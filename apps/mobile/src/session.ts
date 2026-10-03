@@ -94,10 +94,27 @@ const closeGaps = (s: SessionRecord, at: string): SessionRecord =>
 const isRunning = (state: SessionState): state is { phase: "ACTIVE" | "STOPPING"; session: SessionRecord } =>
   state.phase === "ACTIVE" || state.phase === "STOPPING";
 
+/**
+ * Interruptions this close together count as one pause (for example the app leaving the
+ * screen for a second and then being stopped). Nothing is lost: the merged pause covers
+ * both spans and the time between them.
+ */
+export const GAP_MERGE_MS = 5_000;
+
+/** Add a gap starting at `from`, or extend the previous gap if it ended less than GAP_MERGE_MS before. */
+function openOrExtend(gaps: Gap[], reason: GapReason, from: string, to: string | null): Gap[] {
+  const last = gaps[gaps.length - 1];
+  if (last && last.to !== null && Date.parse(from) - Date.parse(last.to) < GAP_MERGE_MS) {
+    const merged: Gap = { reason: reason === "APP_NOT_RUNNING" ? reason : last.reason, from: last.from, to };
+    return [...gaps.slice(0, -1), merged];
+  }
+  return [...gaps, { reason, from, to }];
+}
+
 /** The app went to the background: camera and location stop, so measuring stops. */
 export function markBackground(state: SessionState, now: Date): SessionState {
   if (!isRunning(state) || state.session.gaps.some((g) => g.to === null)) return state;
-  return { ...state, session: { ...state.session, gaps: [...state.session.gaps, { reason: "BACKGROUND", from: now.toISOString(), to: null }] } };
+  return { ...state, session: { ...state.session, gaps: openOrExtend(state.session.gaps, "BACKGROUND", now.toISOString(), null) } };
 }
 
 export function markForeground(state: SessionState, now: Date): SessionState {
@@ -108,12 +125,19 @@ export function markForeground(state: SessionState, now: Date): SessionState {
 /**
  * The app process restarted with a running session on disk. Record the time it was
  * not running as a gap, and carry the last shown distance forward.
+ * One interruption is one gap: if the app went to the background and was then stopped,
+ * the open background gap is extended to now (and marked APP_NOT_RUNNING) instead of
+ * adding a second gap.
  */
 export function resumeAfterRestart(state: SessionState, savedAt: Date, lastDistanceM: number, now: Date): SessionState {
   if (!isRunning(state)) return state;
-  const closed = closeGaps(state.session, savedAt.toISOString());
-  const gaps: Gap[] = [...closed.gaps, { reason: "APP_NOT_RUNNING", from: savedAt.toISOString(), to: now.toISOString() }];
-  return { ...state, session: { ...closed, gaps, distanceCarriedM: Math.max(0, lastDistanceM) } };
+  const s = state.session;
+  const open = s.gaps.findIndex((g) => g.to === null);
+  const gaps: Gap[] =
+    open >= 0
+      ? s.gaps.map((g, i) => (i === open ? { ...g, reason: "APP_NOT_RUNNING", to: now.toISOString() } : g))
+      : openOrExtend(s.gaps, "APP_NOT_RUNNING", savedAt.toISOString(), now.toISOString());
+  return { ...state, session: { ...s, gaps, distanceCarriedM: Math.max(0, lastDistanceM) } };
 }
 
 export function setStartLocation(state: SessionState, fix: { latitude: number; longitude: number }): SessionState {

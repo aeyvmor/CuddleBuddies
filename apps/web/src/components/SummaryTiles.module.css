@@ -69,8 +69,22 @@
   }
 }
 
+/* Phones: compact tiles, three per row, so the queue is reachable without a long scroll. */
 @media (max-width: 640px) {
   .tiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+  .tile {
+    padding: var(--space-3);
+  }
+  .icon {
+    display: none;
+  }
+  .count {
+    font-size: var(--font-size-headline-lg);
+  }
+  .caption {
+    font-size: var(--font-size-label-sm);
   }
 }

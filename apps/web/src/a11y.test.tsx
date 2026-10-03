@@ -39,7 +39,7 @@ describe("keyboard path: review an issue, create a work order, resolve it", () =
     await user.keyboard("{Enter}");
     expect(issueButton()).toHaveAttribute("aria-pressed", "true");
     const detail = await screen.findByRole("article", { name: "Issue detail: Damaged drain" });
-    await waitFor(() => expect(status()).toContain("Showing issue detail: Damaged drain."));
+    await waitFor(() => expect(status()).toContain("Showing issue detail: Damaged drain, 4 of 4."));
 
     // 2. Fill the form and submit with Enter on the button.
     const wo = within(detail).getByRole("region", { name: "Work order" });

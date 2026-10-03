@@ -2,6 +2,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  /* Bounded: a long queue scrolls inside the card instead of pushing the issue detail far down the page. */
+  max-height: var(--size-queue-max-height);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
@@ -62,6 +64,12 @@
 }
 
 .list {
+  /* Containing block for the rows' visually-hidden text, so it scrolls with the list instead of extending the page. */
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -144,6 +152,16 @@
 
 .meta {
   composes: muted from "../styles/primitives.module.css";
+}
+
+/* Long area and road names wrap to two lines at most; the full text is in the title attribute. */
+.place {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: var(--font-size-body-md);
+  color: var(--color-text);
 }
 
 .pills {

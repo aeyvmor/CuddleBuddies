@@ -17,7 +17,8 @@ import type { QueueEntry, StoredImage } from "./queue";
 import { sessionVioSink } from "./screens/ArView";
 import type { SessionRecord } from "./session";
 import { SOURCES, samplingMethodFor } from "./sources";
-import { keepImage } from "./storage";
+import { freeBytes, keepImage } from "./storage";
+import { storageLevel } from "./storageGuard";
 import { checkTrigger, distanceView, freshFix, initialTrigger, type TriggerState } from "./trigger";
 
 /** Same values as the diagnostics screen. */
@@ -26,6 +27,9 @@ const MAX_ACCURACY_M = 20;
 const VIO_MAX_SPEED_MPS = 3;
 const SENSOR_INTERVAL_MS = 50;
 const TICK_MS = 250;
+/** How often free storage is re-read for the screen (each capture also checks it). */
+const STORAGE_POLL_MS = 10_000;
+const PERF_TAG = "ASTIG_PERF";
 
 export interface LiveCapture {
   nowMs: number;
@@ -38,6 +42,8 @@ export interface LiveCapture {
   cameraReady: boolean;
   setCameraReady: (ready: boolean) => void;
   captureNow: () => void;
+  /** Free bytes on the phone, or null if unknown. */
+  freeBytes: number | null;
 }
 
 const imageSize = (uri: string) =>
@@ -61,6 +67,7 @@ export function useLiveCapture(opts: {
   const [busy, setBusy] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
+  const [free, setFree] = useState<number | null>(() => freeBytes());
 
   const gpsRef = useRef(gps);
   gpsRef.current = gps;
@@ -75,7 +82,11 @@ export function useLiveCapture(opts: {
 
   useEffect(() => {
     const t = setInterval(() => setNowMs(Date.now()), TICK_MS);
-    return () => clearInterval(t);
+    const s = setInterval(() => setFree(freeBytes()), STORAGE_POLL_MS);
+    return () => {
+      clearInterval(t);
+      clearInterval(s);
+    };
   }, []);
 
   // GPS for every source: captures need a position, and GPS speed feeds the motion gate.
@@ -150,21 +161,27 @@ export function useLiveCapture(opts: {
       busyRef.current = true;
       setBusy(true);
       const attemptedAt = new Date();
-      const fail = (reason: "NO_LOCATION_FIX" | "IMAGE_FAILED" | "IMAGE_NOT_SAVED", detail: string | null) =>
+      const fail = (reason: "NO_LOCATION_FIX" | "IMAGE_FAILED" | "IMAGE_NOT_SAVED" | "LOW_STORAGE", detail: string | null) =>
         cb.current.onEntry({ kind: "FAILED", clientSessionId: session.clientSessionId, attemptedAt: attemptedAt.toISOString(), samplingMethod, reason, detail });
       try {
+        // Refuse before taking a photo that would fill the phone; recorded as a failure, not skipped.
+        const freeNow = freeBytes();
+        setFree(freeNow);
+        if (storageLevel(freeNow) === "FULL") return fail("LOW_STORAGE", freeNow === null ? null : `${freeNow} bytes free`);
         const fix = freshFix(gpsRef.current.last, attemptedAt.getTime());
         const built = buildCaptureRequest({ sequenceNumber: seqRef.current, capturedAt: attemptedAt, fix, samplingMethod, distanceFromPreviousM });
         if (!built.ok) return fail(built.reason, null);
+        const t0 = Date.now();
         let shot;
         try {
           shot = await takeImage();
         } catch (e) {
           return fail("IMAGE_FAILED", e instanceof Error ? e.message : String(e));
         }
-        let uri: string;
+        const t1 = Date.now();
+        let kept: { uri: string; bytes: number | null };
         try {
-          uri = keepImage(shot.uri, built.request.clientObservationId);
+          kept = keepImage(shot.uri, built.request.clientObservationId);
         } catch (e) {
           return fail("IMAGE_NOT_SAVED", e instanceof Error ? e.message : String(e));
         }
@@ -173,9 +190,11 @@ export function useLiveCapture(opts: {
           kind: "CAPTURED",
           clientSessionId: session.clientSessionId,
           request: built.request,
-          image: { uri, width: shot.width, height: shot.height, source: shot.source },
+          image: { uri: kept.uri, width: shot.width, height: shot.height, source: shot.source, bytes: kept.bytes },
           upload: { state: "PENDING" },
         });
+        // Timings only: no coordinates or image content in logs.
+        console.log(`${PERF_TAG} capture source=${shot.source} image_ms=${t1 - t0} keep_ms=${Date.now() - t1} bytes=${kept.bytes ?? "unknown"} px=${shot.width}x${shot.height}`);
       } finally {
         busyRef.current = false;
         setBusy(false);
@@ -209,5 +228,6 @@ export function useLiveCapture(opts: {
     cameraReady,
     setCameraReady,
     captureNow,
+    freeBytes: free,
   };
 }
