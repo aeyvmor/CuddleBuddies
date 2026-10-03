@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "ASTIG Spike",
+    "slug": "astig-mobile-spike",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "platforms": ["android"],
+    "android": {
+      "package": "dev.astig.spike",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-dev-client",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "ASTIG spike: test photo capture for a feasibility check. Photos stay on the device.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "ASTIG spike: measure GPS accuracy and travelled distance.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": false
+        }
+      ],
+      [
+        "@reactvision/react-viro",
+        {
+          "android": { "xRMode": ["AR"] }
+        }
+      ]
+    ]
+  }
+}

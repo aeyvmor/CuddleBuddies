@@ -1,40 +1,63 @@
-import type { ActorRole, IssueDetail, WorkOrderStatus } from "../api/types";
-import { label } from "../domain/labels";
+import type { IssueDetailResponse, Role, WorkOrderStatus } from "../api/types";
+import { highestSeverity } from "../domain/filters";
+import { formatUtc, label } from "../domain/labels";
 import { DemoBadge } from "./DemoBadge";
 import { EvidenceList } from "./EvidenceList";
 import { ScoreBreakdown } from "./ScoreBreakdown";
-import { WorkOrderPanel } from "./WorkOrderPanel";
+import { WorkOrderPanel, type CreateInput } from "./WorkOrderPanel";
 import styles from "./IssueDetailPanel.module.css";
 
 interface Props {
-  issue: IssueDetail;
-  role: ActorRole;
-  onCreateWorkOrder: (input: { assignee: string | null; notes: string | null }) => Promise<void>;
+  detail: IssueDetailResponse;
+  role: Role;
+  onCreateWorkOrder: (input: CreateInput) => Promise<void>;
   onAdvanceWorkOrder: (workOrderId: string, status: WorkOrderStatus) => Promise<void>;
 }
 
-export function IssueDetailPanel({ issue, role, onCreateWorkOrder, onAdvanceWorkOrder }: Props) {
+export function IssueDetailPanel({ detail, role, onCreateWorkOrder, onAdvanceWorkOrder }: Props) {
+  const { issue, riskAssessment, observations } = detail;
+  const severity = highestSeverity(observations);
   return (
-    <article className={styles.panel} aria-label={`Issue ${issue.id}`}>
-      <header>
-        <h2>{label(issue.issue_type)}</h2>
-        {issue.is_synthetic && <DemoBadge />}
-        <p className={styles.meta}>
-          {issue.id} · {label(issue.severity)} severity · {issue.area_name ?? "Area unknown"}
+    <article id="issue-detail" tabIndex={-1} className={styles.panel} aria-label={`Issue detail: ${label(issue.issueType)}`}>
+      <header className={styles.header}>
+        <div className={styles.titleRow}>
+          <h2 className={styles.title}>{label(issue.issueType)}</h2>
+          {issue.isSynthetic && <DemoBadge />}
+        </div>
+        <p className={styles.pills}>
+          <span data-status={issue.status} className={styles.status}>
+            Issue {label(issue.status)}
+          </span>
+          <span data-severity={severity ?? "UNKNOWN"} className={styles.sev}>
+            {severity ? `Highest AI severity estimate: ${label(severity)}` : "No severity estimate"}
+          </span>
         </p>
-        <p className={styles.meta}>
-          Approx. location {issue.latitude.toFixed(5)}, {issue.longitude.toFixed(5)}
-          {issue.location_uncertainty_m !== null
-            ? ` (uncertainty ±${issue.location_uncertainty_m} m, not an exact asset position)`
-            : " (uncertainty unknown)"}
-        </p>
+        <dl className={styles.facts}>
+          <dt>Area</dt>
+          <dd>
+            {issue.areaName ?? "Area unknown"}
+            {issue.roadName && `, ${issue.roadName}`}
+          </dd>
+          <dt>Approx. location</dt>
+          <dd>
+            {issue.location.latitude.toFixed(5)}, {issue.location.longitude.toFixed(5)}
+            {issue.locationUncertaintyM !== null
+              ? ` (uncertainty ±${issue.locationUncertaintyM} m, not an exact asset position)`
+              : " (uncertainty unknown)"}
+          </dd>
+          <dt>Observed</dt>
+          <dd>
+            {formatUtc(issue.firstObservedAt)} to {formatUtc(issue.lastObservedAt)} · {issue.observationCount} observation(s)
+          </dd>
+        </dl>
       </header>
-      <p>{issue.recommendation}</p>
-      <ScoreBreakdown risk={issue.risk} />
-      <EvidenceList observations={issue.observations} />
+      <ScoreBreakdown risk={riskAssessment} />
+      <EvidenceList observations={observations} truncated={detail.observationsTruncated} />
       <WorkOrderPanel
         role={role}
-        workOrder={issue.work_order}
+        issueStatus={issue.status}
+        riskAssessmentId={riskAssessment?.id ?? null}
+        workOrders={detail.workOrders}
         onCreate={onCreateWorkOrder}
         onAdvance={onAdvanceWorkOrder}
       />

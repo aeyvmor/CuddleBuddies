@@ -1,18 +1,89 @@
-.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
-.card { padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-2); background: var(--color-surface); }
-.head { margin-bottom: var(--space-1); }
-.meta { font-size: var(--font-size-1); color: var(--color-text-muted); }
-.image { display: block; max-width: 100%; margin: var(--space-2) 0; border-radius: var(--radius-1); }
+.section {
+  composes: card from "../styles/primitives.module.css";
+}
+
+.heading {
+  composes: sectionTitle from "../styles/primitives.module.css";
+}
+
+.list {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.card {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-body-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.meta {
+  composes: muted from "../styles/primitives.module.css";
+  margin: 0;
+}
+
+.coords {
+  font-family: var(--font-mono);
+}
+
+.image {
+  display: block;
+  max-width: 100%;
+  margin: var(--space-3) 0;
+  border-radius: var(--radius-md);
+}
+
 .placeholder {
-  margin: var(--space-2) 0;
+  margin: var(--space-3) 0;
   padding: var(--space-5);
   text-align: center;
   color: var(--color-text-muted);
   background: var(--color-surface-muted);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-1);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
 }
-.failed { color: var(--color-danger); font-weight: 600; }
-.detection { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-1) var(--space-3); margin: 0; }
-.detection dt { color: var(--color-text-muted); }
-.detection dd { margin: 0; }
+
+.failed {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-tint);
+  color: var(--color-danger);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* AI assessment block: mint panel, as in the issue-detail mockup. */
+.detection {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-mint);
+}
+
+.detection dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.detection dd {
+  margin: 0;
+}

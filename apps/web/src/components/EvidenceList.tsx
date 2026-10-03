@@ -1,57 +1,75 @@
-import type { Observation } from "../api/types";
-import { formatUtc, label } from "../domain/labels";
+import type { IssueObservation } from "../api/types";
+import { formatUtc, label, samplingLabel } from "../domain/labels";
+import { DemoBadge } from "./DemoBadge";
 import styles from "./EvidenceList.module.css";
 
-function ObservationCard({ o }: { o: Observation }) {
+const EVIDENCE_REASON: Record<string, string> = {
+  NOT_UPLOADED: "Image not uploaded",
+  SIGNER_NOT_CONFIGURED: "Image access is not configured",
+};
+
+function ObservationCard({ o }: { o: IssueObservation }) {
   const d = o.detection;
   return (
     <li className={styles.card}>
-      <div className={styles.head}>
-        <strong>{o.id}</strong> · {formatUtc(o.captured_at)}
-      </div>
-      <div className={styles.meta}>
-        {o.latitude.toFixed(5)}, {o.longitude.toFixed(5)}
-        {o.horizontal_accuracy_m !== null ? ` (GPS accuracy ±${o.horizontal_accuracy_m} m)` : " (GPS accuracy not reported)"}
-      </div>
-      {o.image_url ? (
-        <img className={styles.image} src={o.image_url} alt={d?.evidence_description ?? "Captured evidence image"} />
+      <p className={styles.head}>
+        Captured {formatUtc(o.capturedAt)}
+        {o.isSynthetic && <DemoBadge />}
+      </p>
+      <p className={styles.meta}>
+        <span className={styles.coords}>
+          {o.location.latitude.toFixed(5)}, {o.location.longitude.toFixed(5)}
+        </span>
+        {o.horizontalAccuracyM !== null ? ` (GPS accuracy ±${o.horizontalAccuracyM} m)` : " (GPS accuracy not reported)"} · Sampling: {samplingLabel(o.samplingMethod)}
+      </p>
+      {o.evidence.status === "AVAILABLE" ? (
+        <img className={styles.image} src={o.evidence.url} alt={d?.evidenceDescription ?? "Captured evidence image"} />
       ) : (
-        <div className={styles.placeholder} role="img" aria-label="No image available for this record">
-          No image available
+        <div className={styles.placeholder} role="img" aria-label={`No image: ${EVIDENCE_REASON[o.evidence.reason] ?? o.evidence.reason}`}>
+          {EVIDENCE_REASON[o.evidence.reason] ?? o.evidence.reason}
         </div>
       )}
-      {o.processing_status === "FAILED" && (
-        <p role="alert" className={styles.failed}>
-          Processing failed ({o.error_code ?? "unknown error"}). No detection was recorded for this capture.
+      {o.processingStatus === "FAILED" && (
+        <p className={styles.failed}>
+          Processing failed ({o.processingError?.code ?? "unknown error"}). No detection was recorded for this capture.
         </p>
       )}
-      {(o.processing_status === "PENDING" || o.processing_status === "PROCESSING") && (
-        <p className={styles.meta}>Processing status: {label(o.processing_status)}. No detection yet.</p>
+      {(o.processingStatus === "PENDING" || o.processingStatus === "PROCESSING") && (
+        <p className={styles.meta}>Processing status: {label(o.processingStatus)}. No detection yet.</p>
       )}
       {d && (
         <dl className={styles.detection}>
           <dt>AI-suggested type</dt>
-          <dd>{label(d.issue_type)} ({label(d.severity_estimate)} severity estimate)</dd>
+          <dd>
+            {label(d.issueType)} ({label(d.severityEstimate)} severity estimate)
+          </dd>
           <dt>Confidence</dt>
           <dd>{Math.round(d.confidence * 100)}%</dd>
+          <dt>Obstruction</dt>
+          <dd>{label(d.obstructionType)}</dd>
           <dt>Blockage</dt>
-          <dd>{d.blockage_percent === null ? "Not applicable / not estimated" : `${d.blockage_percent}%`}</dd>
+          <dd>{d.blockagePercent === null ? "Not applicable / not estimated" : `${d.blockagePercent}%`}</dd>
           <dt>Evidence description</dt>
-          <dd>{d.evidence_description}</dd>
+          <dd>{d.evidenceDescription}</dd>
           <dt>Human review</dt>
-          <dd>{d.requires_human_review ? "Flagged for review" : "Not flagged"}</dd>
+          <dd>{d.requiresHumanReview ? "Flagged for review" : "Not flagged"}</dd>
           <dt>Model / schema</dt>
-          <dd>{d.model_version} / {d.schema_version}</dd>
+          <dd>
+            {d.modelVersion} / {d.schemaVersion}
+          </dd>
         </dl>
       )}
     </li>
   );
 }
 
-export function EvidenceList({ observations }: { observations: Observation[] }) {
+export function EvidenceList({ observations, truncated }: { observations: IssueObservation[]; truncated: boolean }) {
   return (
-    <section aria-label="Evidence history">
-      <h3>Evidence history ({observations.length})</h3>
+    <section aria-label="Evidence history" className={styles.section}>
+      <h3 className={styles.heading}>
+        Evidence history ({observations.length}
+        {truncated ? ", newest shown" : ""})
+      </h3>
       <p className={styles.meta}>AI output is advisory and extracts visible evidence only.</p>
       <ul className={styles.list}>
         {observations.map((o) => (

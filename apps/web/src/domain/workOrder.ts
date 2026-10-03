@@ -2,7 +2,7 @@ import type { WorkOrderStatus } from "../api/types";
 
 /**
  * UI hint only: which single forward step to offer. The API is authoritative
- * and must re-validate every transition. Move to packages/domain when it exists.
+ * and re-validates every transition (contract: OPEN -> IN_PROGRESS -> RESOLVED).
  */
 const NEXT: Record<WorkOrderStatus, WorkOrderStatus | null> = {
   OPEN: "IN_PROGRESS",

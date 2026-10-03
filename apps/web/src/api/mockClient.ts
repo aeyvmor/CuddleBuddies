@@ -1,82 +1,148 @@
+﻿import {
+  CreateWorkOrderRequest,
+  CreateWorkOrderResponse,
+  IssueDetailResponse,
+  UpdateWorkOrderRequest,
+  UpdateWorkOrderResponse,
+  type ErrorCode,
+  type Role,
+  type WorkOrder,
+} from "@astig/contracts";
 import type { ApiClient } from "./client";
-import { filterIssues } from "../domain/filters";
+import { filterIssues, highestSeverity } from "../domain/filters";
 import { isValidTransition } from "../domain/workOrder";
 import { createSyntheticIssues } from "../data/syntheticData";
-import { ApiError, type ActorRole, type Issue, type IssueDetail, type WorkOrder } from "./types";
+import { ApiError, type IssueListItem } from "./types";
+
+/** Minimal view of a Zod schema, so the web does not depend on zod directly. */
+interface Schema<T> {
+  safeParse(value: unknown): { success: true; data: T } | { success: false; error: { issues: { path: PropertyKey[]; message: string }[] } };
+}
 
 /**
- * In-memory stand-in for the API while the contract is unfrozen. It mimics the
- * server behaviours the UI must handle: officer-only writes, duplicate work
- * orders, and rejected transitions, each as a stable ApiError code.
+ * In-memory stand-in for the API. It follows the server rules documented in
+ * docs/api/contract-v0-proposal.md and services/api (OFFICER-only routes,
+ * idempotent create, ISSUE_NOT_OPEN, ACTIVE_WORK_ORDER_EXISTS,
+ * RISK_ASSESSMENT_MISMATCH, INVALID_TRANSITION, WORK_ORDER_CLOSED), validates
+ * requests with the shared Zod schemas, and checks its own responses against
+ * them, so contract drift fails loudly instead of rendering wrong data.
  */
 export function createMockApi(options: {
-  getRole: () => ActorRole;
-  seed?: IssueDetail[];
+  getRole: () => Role;
+  seed?: IssueDetailResponse[];
   now?: () => Date;
+  subject?: string;
 }): ApiClient {
-  const issues = options.seed ?? createSyntheticIssues();
+  const details = options.seed ?? createSyntheticIssues();
   const now = options.now ?? (() => new Date());
-  let counter = 100;
+  const subject = options.subject ?? "demo-officer";
+  /** key: `${issueId}:${idempotencyKey}` -> request JSON + work order id */
+  const idempotency = new Map<string, { body: string; workOrderId: string }>();
+  let seq = 0;
+  let req = 0;
 
+  const fail = (code: ErrorCode, message: string): never => {
+    throw new ApiError({ code, message, requestId: `mock-${++req}` });
+  };
   const requireOfficer = () => {
-    if (options.getRole() !== "OFFICER") {
-      throw new ApiError({ code: "FORBIDDEN", message: "Only an authorized officer can do this." });
-    }
+    if (options.getRole() !== "OFFICER") fail("FORBIDDEN", "Requires role OFFICER.");
   };
-  const find = (id: string) => {
-    const issue = issues.find((i) => i.id === id);
-    if (!issue) throw new ApiError({ code: "NOT_FOUND", message: "Issue not found." });
-    return issue;
+  const findDetail = (issueId: string) => details.find((d) => d.issue.id === issueId) ?? fail("NOT_FOUND", "Issue not found.");
+  const parseRequest = <T,>(schema: Schema<T>, body: unknown): T => {
+    const r = schema.safeParse(body);
+    if (!r.success) return fail("VALIDATION_FAILED", `Invalid request: ${r.error.issues[0]?.path.join(".") || "body"}.`);
+    return r.data;
   };
-  const summary = (i: IssueDetail): Issue => {
-    const { observations: _observations, ...rest } = i;
-    return rest;
+  const respond = <T,>(schema: Schema<T>, body: unknown): T => {
+    const r = schema.safeParse(body);
+    if (!r.success) throw new Error(`mock response violates contract: ${r.error.issues[0]?.path.join(".")} ${r.error.issues[0]?.message}`);
+    return structuredClone(r.data);
   };
+  const newId = () => `5e000000-0000-4000-8000-9999${String(++seq).padStart(8, "0")}`;
+
+  const listItem = (d: IssueDetailResponse): IssueListItem => ({
+    issue: structuredClone(d.issue),
+    severity: highestSeverity(d.observations),
+    totalScore: d.riskAssessment?.totalScore ?? null,
+    workOrderStatus: d.workOrders[0]?.status ?? null,
+  });
 
   return {
     async listIssues(filters) {
-      return filterIssues(issues.map(summary), filters);
+      // [gap G1] No list route or role rule yet; readable by any demo role here.
+      return filterIssues(details.map(listItem), filters);
     },
-    async getIssue(id) {
-      return structuredClone(find(id));
-    },
-    async createWorkOrder(issueId, input) {
+
+    async getIssue(issueId) {
       requireOfficer();
-      const issue = find(issueId);
-      if (issue.work_order) {
-        throw new ApiError({ code: "WORK_ORDER_EXISTS", message: "This issue already has a work order." });
+      return respond(IssueDetailResponse, findDetail(issueId));
+    },
+
+    async createWorkOrder(issueId, rawBody) {
+      requireOfficer();
+      const body = parseRequest(CreateWorkOrderRequest, rawBody);
+      const detail = findDetail(issueId);
+
+      const key = `${issueId}:${body.idempotencyKey}`;
+      const bodyJson = JSON.stringify(body);
+      const prior = idempotency.get(key);
+      if (prior) {
+        if (prior.body !== bodyJson) fail("IDEMPOTENCY_CONFLICT", "idempotencyKey was already used with a different request.");
+        const original = detail.workOrders.find((w) => w.id === prior.workOrderId)!;
+        return respond(CreateWorkOrderResponse, { created: false, workOrder: original });
       }
+      if (detail.issue.status !== "OPEN") fail("ISSUE_NOT_OPEN", "Work orders can only be created for OPEN issues.");
+      if (detail.riskAssessment?.id !== body.riskAssessmentId) {
+        fail("RISK_ASSESSMENT_MISMATCH", "riskAssessmentId does not belong to this issue.");
+      }
+      if (detail.workOrders.some((w) => w.status !== "RESOLVED")) {
+        fail("ACTIVE_WORK_ORDER_EXISTS", "This issue already has an active work order.");
+      }
+
       const ts = now().toISOString();
       const wo: WorkOrder = {
-        id: `SYN-WO-${++counter}`,
-        issue_id: issueId,
+        id: newId(),
+        issueId,
+        riskAssessmentId: body.riskAssessmentId,
         status: "OPEN",
-        assignee: input.assignee,
-        notes: input.notes,
-        created_at: ts,
-        updated_at: ts,
+        assignedTeam: body.assignedTeam ?? null,
+        notes: body.notes ?? null,
+        createdBySubject: subject,
+        createdAt: ts,
+        updatedAt: ts,
+        startedAt: null,
+        resolvedAt: null,
+        version: 1,
       };
-      issue.work_order = wo;
-      return structuredClone(wo);
+      detail.workOrders.unshift(wo);
+      idempotency.set(key, { body: bodyJson, workOrderId: wo.id });
+      return respond(CreateWorkOrderResponse, { created: true, workOrder: wo });
     },
-    async updateWorkOrder(id, patch) {
+
+    async updateWorkOrder(workOrderId, rawBody) {
       requireOfficer();
-      const issue = issues.find((i) => i.work_order?.id === id);
-      const wo = issue?.work_order;
-      if (!wo) throw new ApiError({ code: "NOT_FOUND", message: "Work order not found." });
-      if (patch.status !== undefined && patch.status !== wo.status) {
-        if (!isValidTransition(wo.status, patch.status)) {
-          throw new ApiError({
-            code: "INVALID_TRANSITION",
-            message: `Cannot move a work order from ${wo.status} to ${patch.status}.`,
-          });
+      const body = parseRequest(UpdateWorkOrderRequest, rawBody);
+      const detail = details.find((d) => d.workOrders.some((w) => w.id === workOrderId));
+      const wo = detail?.workOrders.find((w) => w.id === workOrderId) ?? fail("NOT_FOUND", "Work order not found.");
+      if (wo.status === "RESOLVED") fail("WORK_ORDER_CLOSED", "This work order is resolved and can no longer be changed.");
+
+      const ts = now().toISOString();
+      if (body.status !== undefined && body.status !== wo.status) {
+        if (!isValidTransition(wo.status, body.status)) {
+          fail("INVALID_TRANSITION", `Cannot move a work order from ${wo.status} to ${body.status}.`);
         }
-        wo.status = patch.status;
+        wo.status = body.status;
+        if (body.status === "IN_PROGRESS") wo.startedAt = ts;
+        if (body.status === "RESOLVED") {
+          wo.resolvedAt = ts;
+          detail!.issue.status = "RESOLVED";
+        }
       }
-      if (patch.assignee !== undefined) wo.assignee = patch.assignee;
-      if (patch.notes !== undefined) wo.notes = patch.notes;
-      wo.updated_at = now().toISOString();
-      return structuredClone(wo);
+      if (body.assignedTeam !== undefined) wo.assignedTeam = body.assignedTeam;
+      if (body.notes !== undefined) wo.notes = body.notes;
+      wo.updatedAt = ts;
+      wo.version += 1;
+      return respond(UpdateWorkOrderResponse, { workOrder: wo });
     },
   };
 }
