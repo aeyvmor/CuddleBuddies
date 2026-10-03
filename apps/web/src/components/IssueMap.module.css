@@ -42,7 +42,7 @@
   flex-direction: column;
 }
 
-/* Schematic canvas: a soft grid suggests a map without implying a real basemap. */
+/* Canvas: soft grid shows until the OpenStreetMap tiles load (and in tests). */
 .canvas {
   position: relative;
   flex: 1;
@@ -65,10 +65,29 @@
     1.5rem 1.5rem;
 }
 
+/* OpenStreetMap tiles (Leaflet) fill the canvas; markers float above them. */
+.basemap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
 /* Marker area stops above the floating legend so no marker sits underneath it. */
 .plot {
   position: absolute;
   inset: 0 0 3.5rem;
+  z-index: 500; /* above Leaflet panes (<= 400), below its controls (1000) */
+  pointer-events: none;
+}
+
+/* Live map: markers use pixel positions over the full map, so do not shrink the area. */
+.plot[data-live="true"] {
+  inset: 0;
+  overflow: hidden;
+}
+
+.plot .marker {
+  pointer-events: auto;
 }
 
 .marker {
@@ -124,6 +143,7 @@
 /* Floating legend over the canvas, as in the command-center mockup. */
 .legend {
   position: absolute;
+  z-index: 1000;
   left: var(--space-3);
   bottom: var(--space-3);
   display: flex;
