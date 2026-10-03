@@ -19,6 +19,8 @@
 
 - **Integration kit (2026-10-04):** `packages/api-client` (typed fetch client + Cognito login/refresh), `docs/api/integration-guide.md` (web + mobile flows), demo accounts `demo-officer`/`demo-operator`/`demo-admin` (passwords in git-ignored `secrets/demo-accounts.local.md`), team phone/car registered (non-synthetic). Resolution evidence route live; `reset-demo` admin action (confirm `RESET_DEMO_DATA`); 8 alarms → SNS email (**confirm the subscription**). Lambda concurrency limit is 10 (needs a support case if throttled). The Vercel URL must be added to `webOrigins` when known.
 
+- **Dashcam demo data loaded (2026-10-04 05:30):** TFH TV footage (friend's channel; written consent obtained; frames face/plate-blurred and team-checked). Binondo (Claveria→Poblete, 16 frames + 3 dense frames at 0:13–0:15) and C5/Katipunan (14 frames) were replayed via the API. Gemini marked 32 frames COMPLETED with no issue and created **1 BLOCKED_DRAIN issue in Manila** (2 observations, 40–75% blockage, score 13.75 of 55 known). Routes are hand-traced/simulated (±30 m Binondo, ±100 m C5). Raw unblurred frames are in git-ignored `tools/dashcam-replay/work/*/frames`: **delete after the event.**
+
 ## Team
 
 Four-person team. The user is primarily focused on backend/API and database work and will help across integration. Add teammate names/owners at kickoff.
