@@ -1,0 +1,76 @@
+.section {
+  min-width: 0;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.tile {
+  composes: card from "../styles/primitives.module.css";
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-right: calc(var(--size-icon-badge) + var(--space-5));
+}
+
+.name {
+  composes: eyebrow from "../styles/primitives.module.css";
+}
+
+.value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+}
+
+.count {
+  font-size: var(--font-size-display);
+  font-weight: var(--font-weight-heavy);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.caption {
+  composes: muted from "../styles/primitives.module.css";
+}
+
+/* Decorative icon badge; the tile name carries the meaning. */
+.icon {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  display: grid;
+  place-items: center;
+  width: var(--size-icon-badge);
+  height: var(--size-icon-badge);
+  border-radius: var(--radius-pill);
+  font-size: var(--size-icon);
+  color: var(--color-sev-low-fg);
+  background: var(--color-sev-low-bg);
+}
+
+.tile[data-kind="CRITICAL"] .icon { color: var(--color-sev-critical-fg); background: var(--color-sev-critical-bg); }
+.tile[data-kind="HIGH"] .icon { color: var(--color-sev-high-fg); background: var(--color-sev-high-bg); }
+.tile[data-kind="MODERATE"] .icon { color: var(--color-sev-moderate-fg); background: var(--color-sev-moderate-bg); }
+.tile[data-kind="RESOLVED"] .icon { color: var(--color-status-resolved-fg); background: var(--color-status-resolved-bg); }
+.tile[data-kind="RESOLVED"] .count { color: var(--color-accent); }
+
+@media (max-width: 1200px) {
+  .tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -30,6 +30,17 @@
   --color-accent-hover: #005321;
   --color-accent-soft-text: #005321;
   --color-brand-decor: #00b14f;
+  /* Logo and large decorative accents only: 4.5:1 on white, between brand green and `primary`. */
+  --color-brand: #008a3c;
+  --color-nav-active-bg: #c9f7d5;
+  --color-nav-active-fg: #005321;
+  --color-accent-ring: #b7e9c6;
+
+  /* Evidence frame: dark capture-viewer surface, as in the issue-detail mockup. */
+  --color-frame: #0f172a;
+  --color-frame-raised: #1e293b;
+  --color-frame-text: #e2e8f0;
+  --color-frame-muted: #94a3b8;
   --color-focus: #006e2e;
   --color-focus-halo: #ffffff;
 
@@ -86,11 +97,11 @@
   --shadow-2: 0 10px 24px -4px rgba(15, 23, 42, 0.08), 0 4px 8px -2px rgba(15, 23, 42, 0.03);
 
   /*
-   * Typography. DESIGN.md specifies Plus Jakarta Sans. Loading it would need a
-   * third-party font request or a new dependency, so it is used only if installed
-   * locally; otherwise the system UI font is the fallback.
+   * Typography. DESIGN.md specifies Plus Jakarta Sans. It is self-hosted through
+   * @fontsource-variable/plus-jakarta-sans (imported in main.tsx), so there is no
+   * third-party font request; the system UI font is the fallback.
    */
-  --font-family: "Plus Jakarta Sans", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-family: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
   --font-size-label-sm: 0.6875rem;
   --font-size-body-sm: 0.75rem;
@@ -114,4 +125,11 @@
   --size-content-max: 90rem;
   --size-focus-ring: 3px;
   --size-bar: 0.5rem;
+  --size-sidebar: 16.5rem;
+  --size-topbar: 4.5rem;
+  --size-gauge: 7.5rem;
+  --size-icon: 1.25rem;
+  --size-icon-badge: 2.75rem;
+  --size-frame-min-height: 9rem;
+  --font-size-display: 2.25rem;
 }
