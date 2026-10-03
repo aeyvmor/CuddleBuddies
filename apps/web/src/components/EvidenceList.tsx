@@ -2,6 +2,7 @@ import type { IssueObservation } from "../api/types";
 import { formatUtc, label, samplingLabel } from "../domain/labels";
 import { DemoBadge } from "./DemoBadge";
 import { Icon } from "./Icon";
+import { RegionImage } from "./RegionImage";
 import styles from "./EvidenceList.module.css";
 
 const EVIDENCE_REASON: Record<string, string> = {
@@ -21,7 +22,11 @@ function ObservationCard({ o }: { o: IssueObservation }) {
       {/* Capture frame: the image when access is granted, otherwise an explicit reason. Never a stand-in photo. */}
       <div className={styles.frame}>
         {o.evidence.status === "AVAILABLE" ? (
-          <img className={styles.image} src={o.evidence.url} alt={d?.evidenceDescription ?? "Captured evidence image"} />
+          d?.regions?.length ? (
+            <RegionImage src={o.evidence.url} alt={d.evidenceDescription} regions={d.regions} />
+          ) : (
+            <img className={styles.image} src={o.evidence.url} alt={d?.evidenceDescription ?? "Captured evidence image"} />
+          )
         ) : (
           <div className={styles.placeholder} role="img" aria-label={`No image: ${EVIDENCE_REASON[o.evidence.reason] ?? o.evidence.reason}`}>
             <Icon name="camera" className={styles.placeholderIcon} />
