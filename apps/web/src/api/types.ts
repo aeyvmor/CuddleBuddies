@@ -9,7 +9,7 @@
  */
 import type {
   ErrorCode,
-  ErrorResponse,
+  IssueDetailResponse,
   IssueStatus,
   IssueType,
   SeverityEstimate,
@@ -17,6 +17,7 @@ import type {
 } from "@astig/contracts";
 
 export type {
+  AnalyticsSummaryResponse,
   CreateWorkOrderRequest,
   CreateWorkOrderResponse,
   Detection,
@@ -24,6 +25,8 @@ export type {
   EvidenceAccess,
   Issue,
   IssueDetailResponse,
+  IssueListItem,
+  IssueListResponse,
   IssueObservation,
   IssueStatus,
   IssueType,
@@ -39,13 +42,10 @@ export type {
   WorkOrderStatus,
 } from "@astig/contracts";
 
-// ---------------------------------------------------------------- LOCAL
+/** One entry of IssueDetailResponse.resolutionEvidence (the field is optional in the contract). */
+export type ResolutionEvidenceItem = NonNullable<IssueDetailResponse["resolutionEvidence"]>[number];
 
-/**
- * One row of the issue list (map + list): the contract's IssueListItem (GET /issues).
- * The mock builds the same shape; the HTTP client (backend owner) will return it.
- */
-export type { IssueListItem } from "@astig/contracts";
+// ---------------------------------------------------------------- LOCAL
 
 /**
  * Filters the UI can set. Names and values follow the contract's IssueListQuery; it is
@@ -62,14 +62,44 @@ export interface IssueListFilters {
   workOrderStatus?: WorkOrderStatus | "NONE";
 }
 
-/** Client-side error carrying the contract's error envelope fields. */
+/** Codes the client itself can raise (not sent by the API). */
+export type ClientErrorCode = "NETWORK_ERROR" | "AUTH_REQUIRED" | "UNEXPECTED_RESPONSE";
+
+/**
+ * Error shown by the UI: the API's error envelope (stable code, safe message, requestId),
+ * or a client-side failure. Both the mock and the HTTP client throw this type.
+ */
 export class ApiError extends Error {
-  readonly code: ErrorCode;
-  readonly requestId: string;
-  constructor(body: ErrorResponse["error"]) {
+  readonly code: ErrorCode | ClientErrorCode;
+  /** The API's requestId, for reports; null for client-side failures. */
+  readonly requestId: string | null;
+  /** HTTP status; 0 for network failures; null when not applicable (mock). */
+  readonly status: number | null;
+  readonly details: { path: string; message: string }[];
+  constructor(body: {
+    code: ErrorCode | ClientErrorCode;
+    message: string;
+    requestId?: string | null;
+    status?: number | null;
+    details?: { path: string; message: string }[];
+  }) {
     super(body.message);
     this.name = "ApiError";
     this.code = body.code;
-    this.requestId = body.requestId;
+    this.requestId = body.requestId ?? null;
+    this.status = body.status ?? null;
+    this.details = body.details ?? [];
   }
+
+  /** A 409-class business rule (the issue changed; refetch and show the message). */
+  get isConflict(): boolean {
+    return ["INVALID_TRANSITION", "WORK_ORDER_CLOSED", "ISSUE_NOT_OPEN", "ACTIVE_WORK_ORDER_EXISTS", "RISK_ASSESSMENT_MISMATCH"].includes(this.code);
+  }
+}
+
+/** User-facing text for an error: the safe message, plus the requestId to quote in a report. */
+export function errorText(e: unknown, fallback: string): string {
+  if (!(e instanceof ApiError)) return fallback;
+  const details = e.details.length > 0 ? ` (${e.details.map((d) => `${d.path}: ${d.message}`).join("; ")})` : "";
+  return `${e.message}${details}`;
 }

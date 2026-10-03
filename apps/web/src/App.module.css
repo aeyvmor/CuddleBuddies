@@ -220,6 +220,19 @@ a.navLink:hover {
   font-weight: var(--font-weight-semibold);
 }
 
+.signOut {
+  composes: buttonGhost from "./styles/primitives.module.css";
+}
+
+.notice {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-status-progress-bg);
+  color: var(--color-status-progress-fg);
+  font-weight: var(--font-weight-semibold);
+}
+
 /* ---------------------------------------------------------------- Content */
 
 .content {

@@ -1,4 +1,4 @@
-﻿import { useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
@@ -6,12 +6,12 @@ import { App } from "./App";
 import { createMockApi } from "./api/mockClient";
 import type { Role } from "./api/types";
 
-function Harness({ initialRole = "OPERATOR" as Role }) {
+function Harness({ initialRole = "OFFICER" as Role }) {
   const [role, setRole] = useState<Role>(initialRole);
   const ref = useRef(role);
   ref.current = role;
   const [api] = useState(() => createMockApi({ getRole: () => ref.current }));
-  return <App api={api} role={role} onRoleChange={setRole} />;
+  return <App api={api} role={role} dataSource="mock" account={{ kind: "demo-role", onRoleChange: setRole }} />;
 }
 
 const MARKER = /Map marker/;
@@ -53,11 +53,10 @@ describe("operations dashboard", () => {
     expect(within(detail).getByText(/Processing failed \(PROVIDER_UNAVAILABLE\)/)).toBeInTheDocument();
   });
 
-  it("refuses issue detail to a non-officer with the server's message", async () => {
-    const user = userEvent.setup();
-    render(<Harness />);
-    await user.click(await screen.findByRole("button", { name: /Map marker: Damaged drain/ }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Requires role OFFICER.");
+  it("refuses the dashboard to a non-officer with the server's message (as GET /issues does)", async () => {
+    render(<Harness initialRole="OPERATOR" />);
+    expect((await screen.findAllByRole("alert"))[0]).toHaveTextContent("Requires role OFFICER.");
+    expect(screen.queryByRole("button", { name: MARKER })).not.toBeInTheDocument();
     expect(screen.queryByRole("article")).not.toBeInTheDocument();
   });
 

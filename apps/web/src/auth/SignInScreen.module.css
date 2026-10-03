@@ -1,0 +1,89 @@
+.screen {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: var(--space-5) var(--space-4);
+  background: var(--color-canvas);
+}
+
+.card {
+  composes: card from "../styles/primitives.module.css";
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: min(100%, 26rem);
+  padding: var(--space-6) var(--space-5);
+}
+
+.brand {
+  margin: 0;
+  font-size: var(--font-size-headline-lg);
+  font-weight: var(--font-weight-heavy);
+  letter-spacing: -0.03em;
+  color: var(--color-brand);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-headline-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.title:focus-visible {
+  outline-offset: var(--space-1);
+}
+
+.muted {
+  composes: muted from "../styles/primitives.module.css";
+  margin: 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.field {
+  composes: field from "../styles/primitives.module.css";
+}
+
+.input {
+  composes: control from "../styles/primitives.module.css";
+  font-size: var(--font-size-body-lg);
+}
+
+.error {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-tint);
+  color: var(--color-danger);
+  font-weight: var(--font-weight-semibold);
+}
+
+.notice {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-status-progress-bg);
+  color: var(--color-status-progress-fg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.primary {
+  composes: buttonPrimary from "../styles/primitives.module.css";
+  min-height: calc(var(--size-touch) + var(--space-2));
+  font-size: var(--font-size-body-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.primary[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.link {
+  composes: buttonGhost from "../styles/primitives.module.css";
+  align-self: flex-start;
+}

@@ -1,8 +1,13 @@
 import { useRef, useState } from "react";
 import { WorkOrderStatus as WorkOrderStatusEnum } from "@astig/contracts";
-import { ApiError, type IssueStatus, type Role, type WorkOrder, type WorkOrderStatus } from "../api/types";
+import { newId } from "@astig/api-client";
+import type { ResolutionPhotoInput } from "../api/client";
+import { ApiError, errorText, type IssueStatus, type ResolutionEvidenceItem, type Role, type WorkOrder, type WorkOrderStatus } from "../api/types";
+import { checkResolutionFile, RESOLUTION_MAX_PER_WORK_ORDER } from "../domain/resolution";
 import { nextWorkOrderStatus } from "../domain/workOrder";
 import { formatUtc, label } from "../domain/labels";
+import { EvidenceImage, type ImageRetry } from "./EvidenceImage";
+import { evidenceImageClasses } from "./EvidenceList";
 import { Icon } from "./Icon";
 import styles from "./WorkOrderPanel.module.css";
 
@@ -19,12 +24,35 @@ interface Props {
   riskAssessmentId: string | null;
   /** Newest first (contract order). */
   workOrders: WorkOrder[];
+  /** "After" photos for this issue's work orders (optional in the contract). */
+  resolutionEvidence: ResolutionEvidenceItem[];
   onCreate: (input: CreateInput) => Promise<void>;
   onAdvance: (workOrderId: string, status: WorkOrderStatus) => Promise<void>;
+  onAddPhoto: (workOrderId: string, input: ResolutionPhotoInput) => Promise<void>;
+  retry: ImageRetry;
+  onReload: () => void;
 }
 
-const newKey = () => crypto.randomUUID();
 const STEPS = WorkOrderStatusEnum.options;
+
+/** Shown error: the safe message and, when the API gave one, the requestId to quote in a report. */
+interface ShownError {
+  text: string;
+  requestId: string | null;
+}
+const toShown = (e: unknown): ShownError => ({
+  text: errorText(e, "Something went wrong. Try again."),
+  requestId: e instanceof ApiError ? e.requestId : null,
+});
+
+function ErrorLine({ error, className }: { error: ShownError; className: string | undefined }) {
+  return (
+    <p role="alert" className={className}>
+      {error.text}
+      {error.requestId && <span className={styles.reference}> Reference: {error.requestId}</span>}
+    </p>
+  );
+}
 
 /** Display-only stepper for the current status. Every step has a text state, not just a colour. */
 function Steps({ status }: { status: WorkOrderStatus }) {
@@ -44,13 +72,114 @@ function Steps({ status }: { status: WorkOrderStatus }) {
   );
 }
 
-export function WorkOrderPanel({ role, issueStatus, riskAssessmentId, workOrders, onCreate, onAdvance }: Props) {
+/** Optional "after" photo for an IN_PROGRESS or RESOLVED work order. JPEG only, at most 10 MB. */
+function AfterPhoto(props: {
+  workOrder: WorkOrder;
+  photos: ResolutionEvidenceItem[];
+  readOnly: boolean;
+  onAdd: Props["onAddPhoto"];
+  retry: ImageRetry;
+  onReload: () => void;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+  const [note, setNote] = useState("");
+  const [problem, setProblem] = useState<string | null>(null);
+  const [error, setError] = useState<ShownError | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState("");
+  // One id per photo action: a retry after a failure reuses it, so the server returns the same record.
+  const [evidenceId, setEvidenceId] = useState(newId);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const full = props.photos.length >= RESOLUTION_MAX_PER_WORK_ORDER;
+
+  function choose(f: File | null) {
+    setFile(f);
+    setError(null);
+    setDone("");
+    setEvidenceId(newId());
+    setProblem(f ? checkResolutionFile(f) : null);
+  }
+
+  async function upload() {
+    if (!file || problem || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await props.onAdd(props.workOrder.id, { clientEvidenceId: evidenceId, file, note: note.trim() || undefined });
+      setDone("After photo uploaded.");
+      setFile(null);
+      setNote("");
+      setEvidenceId(newId());
+      if (inputRef.current) inputRef.current.value = "";
+    } catch (e) {
+      setError(toShown(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className={styles.after}>
+      <h4 className={styles.subheading}>After photo (optional)</h4>
+      {props.photos.length > 0 ? (
+        <ul className={styles.photos}>
+          {props.photos.map((p) => (
+            <li key={p.id} className={styles.photo}>
+              <EvidenceImage evidence={p.evidence} alt={p.note ?? "After photo"} retry={props.retry} onReload={props.onReload} classes={evidenceImageClasses} />
+              <span className={styles.muted}>
+                Added {formatUtc(p.createdAt)}
+                {p.note && ` · ${p.note}`}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className={styles.muted}>No after photo yet. A photo of the completed work is optional; no automatic before/after comparison is made.</p>
+      )}
+      {!props.readOnly && !full && (
+        <div className={styles.form}>
+          <label className={styles.field}>
+            <span>Photo (JPEG, up to 10 MB)</span>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/jpeg,.jpg,.jpeg"
+              className={styles.input}
+              onChange={(e) => choose(e.target.files?.[0] ?? null)}
+              aria-describedby={problem ? "after-photo-problem" : undefined}
+            />
+          </label>
+          {problem && (
+            <p id="after-photo-problem" role="alert" className={styles.error}>
+              {problem}
+            </p>
+          )}
+          <label className={styles.field}>
+            <span>Note (optional)</span>
+            <input className={styles.input} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
+          </label>
+          {error && <ErrorLine error={error} className={styles.error} />}
+          <p role="status" className={styles.muted}>
+            {busy ? "Uploading…" : done}
+          </p>
+          <button type="button" className={styles.secondary} disabled={!file || !!problem} aria-disabled={busy || undefined} onClick={() => void upload()}>
+            Upload after photo
+          </button>
+        </div>
+      )}
+      {full && <p className={styles.muted}>This work order has the maximum of {RESOLUTION_MAX_PER_WORK_ORDER} after photos.</p>}
+    </div>
+  );
+}
+
+export function WorkOrderPanel(props: Props) {
+  const { role, issueStatus, riskAssessmentId, workOrders, onCreate, onAdvance } = props;
   const [assignedTeam, setAssignedTeam] = useState("");
   const [notes, setNotes] = useState("");
-  // One key per create attempt: a retry after a failure reuses it, so the server can
+  // One key per create action: a retry after a failure reuses it, so the server can
   // replay instead of creating a duplicate. A new key is issued after success.
-  const [idempotencyKey, setIdempotencyKey] = useState(newKey);
-  const [error, setError] = useState<string | null>(null);
+  const [idempotencyKey, setIdempotencyKey] = useState(newId);
+  const [error, setError] = useState<ShownError | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [busy, setBusy] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -58,7 +187,7 @@ export function WorkOrderPanel({ role, issueStatus, riskAssessmentId, workOrders
   // Editing the form makes it a different request, so it gets a new key.
   const edit = (set: (v: string) => void, v: string) => {
     set(v);
-    setIdempotencyKey(newKey());
+    setIdempotencyKey(newId());
   };
 
   /**
@@ -77,7 +206,7 @@ export function WorkOrderPanel({ role, issueStatus, riskAssessmentId, workOrders
       setAnnouncement(after.announce);
       if (after.moveFocus) headingRef.current?.focus();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Something went wrong. Try again.");
+      setError(toShown(e));
     } finally {
       setBusy(false);
     }
@@ -88,6 +217,7 @@ export function WorkOrderPanel({ role, issueStatus, riskAssessmentId, workOrders
   const next = active ? nextWorkOrderStatus(active.status) : null;
   const canCreate = issueStatus === "OPEN" && !active && riskAssessmentId !== null;
   const readOnly = !isOfficer;
+  const photos = current ? props.resolutionEvidence.filter((p) => p.workOrderId === current.id) : [];
 
   return (
     <section aria-labelledby="work-order-heading" className={styles.section}>
@@ -98,11 +228,7 @@ export function WorkOrderPanel({ role, issueStatus, riskAssessmentId, workOrders
       <p role="status" className="visually-hidden">
         {announcement}
       </p>
-      {error && (
-        <p role="alert" className={styles.error}>
-          {error}
-        </p>
-      )}
+      {error && <ErrorLine error={error} className={styles.error} />}
 
       {current && (
         <>
@@ -136,6 +262,16 @@ export function WorkOrderPanel({ role, issueStatus, riskAssessmentId, workOrders
             </button>
           )}
           {!active && <p className={styles.muted}>This work order is resolved.</p>}
+          {current.status !== "OPEN" && (
+            <AfterPhoto
+              workOrder={current}
+              photos={photos}
+              readOnly={readOnly}
+              onAdd={props.onAddPhoto}
+              retry={props.retry}
+              onReload={props.onReload}
+            />
+          )}
         </>
       )}
 
@@ -146,7 +282,7 @@ export function WorkOrderPanel({ role, issueStatus, riskAssessmentId, workOrders
             e.preventDefault();
             void run(
               () => onCreate({ idempotencyKey, assignedTeam: assignedTeam.trim() || undefined, notes: notes.trim() || undefined }),
-              { announce: "Work order created. Status: Open.", moveFocus: true, onSuccess: () => setIdempotencyKey(newKey()) },
+              { announce: "Work order created. Status: Open.", moveFocus: true, onSuccess: () => setIdempotencyKey(newId()) },
             );
           }}
         >

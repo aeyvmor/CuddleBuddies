@@ -188,3 +188,9 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Manual reload after an image failed twice (expired link). */
+.retryButton {
+  composes: buttonGhost from "../styles/primitives.module.css";
+  margin-top: var(--space-2);
+}

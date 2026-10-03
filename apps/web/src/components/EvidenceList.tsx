@@ -1,15 +1,22 @@
-import type { IssueObservation } from "../api/types";
+import type { EvidenceAccess, IssueObservation } from "../api/types";
 import { formatUtc, label, samplingLabel } from "../domain/labels";
 import { DemoBadge } from "./DemoBadge";
+import { EvidenceImage, type ImageRetry } from "./EvidenceImage";
 import { Icon } from "./Icon";
 import styles from "./EvidenceList.module.css";
 
-const EVIDENCE_REASON: Record<string, string> = {
-  NOT_UPLOADED: "Image not uploaded",
-  SIGNER_NOT_CONFIGURED: "Image access is not configured",
+export const evidenceImageClasses = {
+  image: styles.image,
+  placeholder: styles.placeholder,
+  placeholderIcon: styles.placeholderIcon,
+  retryButton: styles.retryButton,
 };
 
-function ObservationCard({ o }: { o: IssueObservation }) {
+function Frame(props: { evidence: EvidenceAccess; alt: string; retry: ImageRetry; onReload: () => void }) {
+  return <EvidenceImage {...props} classes={evidenceImageClasses} />;
+}
+
+function ObservationCard({ o, retry, onReload }: { o: IssueObservation; retry: ImageRetry; onReload: () => void }) {
   const d = o.detection;
   return (
     <li className={styles.card}>
@@ -20,14 +27,7 @@ function ObservationCard({ o }: { o: IssueObservation }) {
       </p>
       {/* Capture frame: the image when access is granted, otherwise an explicit reason. Never a stand-in photo. */}
       <div className={styles.frame}>
-        {o.evidence.status === "AVAILABLE" ? (
-          <img className={styles.image} src={o.evidence.url} alt={d?.evidenceDescription ?? "Captured evidence image"} />
-        ) : (
-          <div className={styles.placeholder} role="img" aria-label={`No image: ${EVIDENCE_REASON[o.evidence.reason] ?? o.evidence.reason}`}>
-            <Icon name="camera" className={styles.placeholderIcon} />
-            {EVIDENCE_REASON[o.evidence.reason] ?? o.evidence.reason}
-          </div>
-        )}
+        <Frame evidence={o.evidence} alt={d?.evidenceDescription ?? "Captured evidence image"} retry={retry} onReload={onReload} />
         <p className={styles.meta}>
           <span className={styles.chip}>
             <span className={styles.coords}>
@@ -89,7 +89,8 @@ function ObservationCard({ o }: { o: IssueObservation }) {
   );
 }
 
-export function EvidenceList({ observations, truncated }: { observations: IssueObservation[]; truncated: boolean }) {
+export function EvidenceList(props: { observations: IssueObservation[]; truncated: boolean; retry: ImageRetry; onReload: () => void }) {
+  const { observations, truncated } = props;
   return (
     <section aria-label="Evidence history" className={styles.section}>
       <h3 className={styles.heading}>
@@ -99,7 +100,7 @@ export function EvidenceList({ observations, truncated }: { observations: IssueO
       <p className={styles.note}>AI output is advisory and extracts visible evidence only.</p>
       <ul className={styles.list}>
         {observations.map((o) => (
-          <ObservationCard key={o.id} o={o} />
+          <ObservationCard key={o.id} o={o} retry={props.retry} onReload={props.onReload} />
         ))}
       </ul>
     </section>

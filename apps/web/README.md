@@ -8,21 +8,48 @@ Do not depend on Google Street View for the hackathon MVP. Prefer team-captured 
 
 ## Current status
 
-- **Data source:** an in-memory **mock API** (`src/api/mockClient.ts`) serving **synthetic, labeled** records (`src/data/syntheticData.ts`). Nothing here is real captured data. The backend owner is wiring the HTTP client (`packages/api-client`) and choosing the map provider.
+- **Data source (`VITE_ASTIG_API`):**
+  - `live` (default for `npm run dev` and production builds): the deployed API (`https://2jpf5wobhl.execute-api.ap-southeast-1.amazonaws.com`) through `@astig/api-client`, behind a Cognito sign-in. `src/api/httpClient.ts` adapts `AstigClient` to the UI's `ApiClient` interface.
+  - `mock` (default under the test runner): the in-memory **mock API** (`src/api/mockClient.ts`) with **synthetic, labeled** records (`src/data/syntheticData.ts`), for tests and an offline demo. It has a demo role picker instead of sign-in.
+  - Set it in `apps/web/.env.local` (see `.env.example`), for example `VITE_ASTIG_API=mock` for the offline demo. Any other value shows a configuration error.
+- **Sign-in (live):** Cognito `USER_PASSWORD_AUTH` via `CognitoAuth` (`src/auth/AuthGate.tsx`, `src/auth/SignInScreen.tsx`).
+  - A first-login `NEW_PASSWORD_REQUIRED` challenge shows a "Set a new password" form.
+  - Tokens are kept **in memory only**, so a page reload asks for sign-in again.
+  - The top bar shows who is signed in and a **Sign out** button.
+  - `AUTH_REQUIRED` / `UNAUTHENTICATED` from any call returns to sign-in ("Your session has ended…").
+  - `FORBIDDEN` shows "This account can't access the dashboard (needs OFFICER)."
+  - Passwords are never stored, logged or committed; the demo accounts' passwords are with the backend owner.
 - **Contracts:** shapes come from `@astig/contracts` (draft v0). The mock validates requests with the shared Zod schemas and checks its own responses against them. A test parses every synthetic record with `IssueDetailResponse`.
 - **Server rules mirrored by the mock:**
-  - officer-only issue detail and writes (`FORBIDDEN`);
+  - officer-only routes, including the list and analytics (`FORBIDDEN`);
   - idempotent create, where the same key and body replays the original and a different body returns `IDEMPOTENCY_CONFLICT`;
   - `ISSUE_NOT_OPEN`, `ACTIVE_WORK_ORDER_EXISTS`, `RISK_ASSESSMENT_MISMATCH`;
   - `INVALID_TRANSITION` and `WORK_ORDER_CLOSED`;
-  - resolving the work order resolves the issue.
+  - resolving the work order resolves the issue;
+  - after photos only on `IN_PROGRESS`/`RESOLVED` work orders, at most 5.
 - **Features:**
-  - schematic map and issue queue, with severity / type / area / issue status / work-order filters;
+  - schematic map and issue queue, with severity / type / area / issue status / work-order filters. Area options come from the list response's `areaNames`;
   - a result line ("Showing 45 of 300 issues") and **Clear filters (n)**; a set filter is outlined and tinted;
-  - the queue is in the contract's list order (score, then most recently observed, then id) and scrolls inside its card. It keeps the selected row in view;
+  - the queue is in the contract's list order (score, then most recently observed, then id) and scrolls inside its card. It keeps the selected row in view. The HTTP client follows `nextCursor` (200 per page) up to 2,000 issues, and says so if more exist;
   - issue detail: **Previous / Next** through the filtered queue ("Issue 2 of 4 in the queue") and **Close**, plus status, location uncertainty, observed range, evidence history, confidence, review flag, sampling method, failed processing, and image availability;
-  - score breakdown, where `UNKNOWN` inputs are shown as unknown and never as zero;
-  - officer-only work-order create and `OPEN → IN_PROGRESS → RESOLVED`.
+  - score breakdown, where `UNKNOWN` inputs are shown as unknown and never as zero, with `knownCapTotal`;
+  - officer-only work-order create and `OPEN → IN_PROGRESS → RESOLVED`:
+    - the idempotency key is generated with `newId()` once per create action and reused if that action is retried;
+    - `riskAssessmentId` is the score shown on screen;
+    - after every write the issue, list and analytics are refetched;
+    - 409 conflicts (`INVALID_TRANSITION`, `ACTIVE_WORK_ORDER_EXISTS`, `ISSUE_NOT_OPEN`, `WORK_ORDER_CLOSED`, `RISK_ASSESSMENT_MISMATCH`) are shown inline with the API's message and request id, and the issue is refetched;
+  - optional **after photo** on an `IN_PROGRESS` or `RESOLVED` work order:
+    - JPEG only, at most 10 MB, with an optional note, checked before any request;
+    - `createResolutionEvidence`, then the presigned PUT; the `clientEvidenceId` is reused on retry;
+    - `resolutionEvidence` is shown under the work order;
+  - **evidence images** use the short-lived presigned URLs. If one fails to load, the issue is refetched once for fresh URLs. If it fails again, "Image could not be loaded" is shown with **Reload images**. `UNAVAILABLE` evidence shows its reason;
+  - **analytics summary** (`GET /analytics/summary`):
+    - issues by type, AI severity and area;
+    - open / in progress / resolved work orders, and mean hours to resolve;
+    - repeat issues and coverage (sessions, captures, client-reported distance);
+    - processing counts;
+    - the `includesSynthetic` badge.
+- **Errors:** the safe message is shown together with the API's request id ("reference req-…"), so a failure can be reported exactly.
 - **Load failures:** they show as failures, not as empty data. Summary tiles show "–", the map and queue say "Issues could not be loaded", and the alert has **Try again**. Before this fix the page showed zeros and "No issues match", which looks like a clean result.
 - **Layout:** follows the command-center and issue-detail mockups in `visual/`.
   - Shell: left sidebar (brand, in-page section links, data-source note) and a sticky top bar (page title, synthetic-data badge, demo role).
@@ -30,29 +57,20 @@ Do not depend on Google Street View for the hackathon MVP. Prefer team-captured 
   - Issue review: opens below the map and queue and scrolls into view. Evidence is on the left; priority score with gauge, location and history, and the work order are on the right.
   - Summary tiles are counts of the issue list the page already holds (open issues by highest AI severity estimate, open, resolved). They are not the analytics summary. On phones they are three to a row and compact.
   - The synthetic-data badge is full size in the top bar and the detail header. Repeated rows (queue, evidence cards) carry a compact "Synthetic" badge in the same colours.
-  - Left out on purpose because they are outside the MVP or not backed by data: auto-dispatch / "Deploy crew", real-time sensor and system-status claims, heatmap layer, weather and hazard alerts, recommended dispatch action (gap G6), export and audit-log actions, and the executive analytics page.
+  - Left out on purpose because they are outside the MVP or not backed by data: auto-dispatch / "Deploy crew", real-time sensor and system-status claims, heatmap layer, weather and hazard alerts, recommended dispatch action (gap G6), and export and audit-log actions. The analytics shown are the API summary, not the executive QuickSight page.
 - **Styling:** Civic Pulse direction (`visual/civic_pulse_design_system/DESIGN.md`) through tokens in `src/styles/tokens.css`. `src/styles/primitives.module.css` holds the shared card, pill, button and field styles. There is one CSS Module per component, and no UI component library. Icons are a small inline SVG set (`src/components/Icon.tsx`), all decorative.
   - **Fonts:** Plus Jakarta Sans is self-hosted through `@fontsource-variable/plus-jakarta-sans` (OFL-1.1, imported in `src/main.tsx`), so there is no third-party font request. The system UI font is the fallback.
-- **Demo role selector:** a placeholder until real auth is chosen. Its roles are the contract's `OPERATOR` and `OFFICER`, and it defaults to `OPERATOR`.
+- **Demo role selector (mock mode only):** the contract's `OPERATOR` and `OFFICER`, defaulting to `OFFICER`. In live mode the role comes from the Cognito groups, and the API enforces it.
 
-Commands (from the repo root): `npm install`, `npm run dev -w @astig/web`, `npm test -w @astig/web`, `npm run build -w @astig/web`.
+Commands (from the repo root): `npm install`, `npm run web:dev` (live; sign in at `http://localhost:5173`), `npm run test:web`, `npm run typecheck:web`, `npm run build:web`. Only `http://localhost:5173`, `http://localhost:4173` and `https://astig-xi.vercel.app` are allowed by the API's CORS.
 
 ## Contract gaps
 
-Closed by the backend's `GET /issues` contract (`packages/contracts/src/issue-list.ts`):
-- **G1 list shape:** `IssueListItem` is imported from the contract.
-- **G2 severity:** the list item carries it.
-- **G3 filters:** `src/api/types.ts` keeps a local `IssueListFilters`, which is the filter subset of `IssueListQuery`. Paging and `bbox` are added by the HTTP client.
-- **G4 role:** the route is `OFFICER`.
-- **G5 area names:** they come with the list response. The mock still collects them from an unfiltered call.
-
-Still open:
+The backend contract closed G1–G5 and G7: the list shape, severity, filters, role, area names, and processing codes shown verbatim. One gap is still open:
 
 | # | Gap | Web workaround now | Smallest proposed fix (backend owner) |
 | --- | --- | --- | --- |
-| G6 | Requirement 10 "recommendation" has no field (also noted as a gap in `contract-v0-proposal.md`) | The web dropped the invented `recommendation` text | Add the priority band once thresholds are agreed |
-| G7 | `ProcessingError.code` values are free strings | Shown verbatim | Enumerate the worker's codes |
-| G8 | The list is paged (max 200 per call); the queue and Previous/Next cover the loaded page only | The mock returns everything | HTTP client: "Load more" with `nextCursor`, or raise the page size for the demo |
+| G6 | Requirement 10 "recommendation" has no field (also noted as a gap in `contract-v0-proposal.md`) | The web shows no recommendation text | Add the priority band once thresholds are agreed |
 
 Superseded proposals from `docs/api/client-contract-proposal.md`: contract v0 uses camelCase, not snake_case. Other replacements:
 - `KNOWN`/`UNKNOWN`, not `MEASURED`/`UNAVAILABLE`.
@@ -70,7 +88,7 @@ The map is a schematic placeholder, not a basemap, because the map provider is u
 - **Tab order:**
   1. "Skip to issue detail" link (only once a detail is shown; hidden until focused);
   2. sidebar section links ("Command center", "Issue queue", and "Issue review" once an issue is shown);
-  3. demo role;
+  3. Sign out (live) or the demo role picker (mock);
   4. the five filters, then "Clear filters" when any is set;
   5. map markers;
   6. issue queue;
@@ -98,6 +116,21 @@ The map is a schematic placeholder, not a basemap, because the map provider is u
   - Previous / Next / Close, and Next stopping at the end;
   - a failed load showing dashes and "could not be loaded", never zeros, and recovering on Try again;
   - 300 issues.
+  `src/api/httpClient.test.ts` drives the real `AstigClient` with a fake `fetch`:
+  - filters and paging to `GET /issues`, and the bearer token;
+  - the create body;
+  - 409 / 403 / 401 / `AUTH_REQUIRED` mapping;
+  - the after-photo register-then-PUT, with no manual `content-length`;
+  - analytics.
+
+  `src/auth/AuthGate.test.tsx` drives the real `CognitoAuth` with a fake Cognito endpoint:
+  - sign-in, a wrong password, and empty fields;
+  - `NEW_PASSWORD_REQUIRED` with mismatch and rejection;
+  - sign-out;
+  - a 401 returning to sign-in, and `FORBIDDEN` for an operator account.
+
+  `src/features.test.tsx` covers after photos, inline 409s, the image refetch-once rule, and analytics.
+- **Sign-in keyboard behavior:** the fields have visible labels and `autocomplete` (username / current-password / new-password), and Enter submits. Errors use `role="alert"` and stay until the next attempt. Moving to "Set a new password" puts focus on its heading. The session-ended and signed-out notices are a status message.
 - **Not covered:** no screen-reader testing (NVDA/JAWS/TalkBack) and no automated axe scan, because that would be a new dependency.
 
 ## Stress check (2026-10-04, headless Edge, temporary harness; not in the repo)

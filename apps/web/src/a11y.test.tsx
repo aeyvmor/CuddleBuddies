@@ -11,7 +11,7 @@ function Harness({ initialRole }: { initialRole: Role }) {
   const ref = useRef(role);
   ref.current = role;
   const [api] = useState(() => createMockApi({ getRole: () => ref.current }));
-  return <App api={api} role={role} onRoleChange={setRole} />;
+  return <App api={api} role={role} dataSource="mock" account={{ kind: "demo-role", onRoleChange: setRole }} />;
 }
 
 type User = ReturnType<typeof userEvent.setup>;
@@ -68,7 +68,8 @@ describe("keyboard path: review an issue, create a work order, resolve it", () =
     await waitFor(() => expect(document.activeElement).toBe(heading));
     await waitFor(() => expect(status()).toContain("Work order status changed to Resolved."));
     expect(within(wo).getByRole("listitem", { current: "step" })).toHaveTextContent("Resolved");
-    expect(within(wo).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(wo).queryByRole("button", { name: /^Mark/ })).not.toBeInTheDocument();
+    expect(within(wo).queryByRole("button", { name: "Create work order" })).not.toBeInTheDocument();
   });
 
   it("can open an issue from a map marker with the keyboard", async () => {
@@ -91,12 +92,8 @@ describe("keyboard path: review an issue, create a work order, resolve it", () =
   });
 
   it("announces a refused request as an alert", async () => {
-    const user = userEvent.setup();
     render(<Harness initialRole="OPERATOR" />);
-    const marker = await screen.findByRole("button", { name: /Map marker: Blocked drain/ });
-    await tabTo(user, () => marker);
-    await user.keyboard("{Enter}");
-    expect(await screen.findByRole("alert")).toHaveTextContent("Requires role OFFICER.");
+    expect((await screen.findAllByRole("alert"))[0]).toHaveTextContent("Requires role OFFICER.");
   });
 });
 

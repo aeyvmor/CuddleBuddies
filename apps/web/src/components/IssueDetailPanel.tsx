@@ -1,7 +1,9 @@
+import type { ResolutionPhotoInput } from "../api/client";
 import type { IssueDetailResponse, Role, WorkOrderStatus } from "../api/types";
 import { highestSeverity } from "../domain/filters";
 import { formatUtc, label } from "../domain/labels";
 import { DemoBadge } from "./DemoBadge";
+import type { ImageRetry } from "./EvidenceImage";
 import { EvidenceList } from "./EvidenceList";
 import { Icon } from "./Icon";
 import { ScoreBreakdown } from "./ScoreBreakdown";
@@ -23,9 +25,14 @@ interface Props {
   onClose: () => void;
   onCreateWorkOrder: (input: CreateInput) => Promise<void>;
   onAdvanceWorkOrder: (workOrderId: string, status: WorkOrderStatus) => Promise<void>;
+  onAddPhoto: (workOrderId: string, input: ResolutionPhotoInput) => Promise<void>;
+  /** One automatic refetch for expired image links. */
+  imageRetry: ImageRetry;
+  /** Refetch the issue (fresh image links). */
+  onReload: () => void;
 }
 
-export function IssueDetailPanel({ detail, role, position, onClose, onCreateWorkOrder, onAdvanceWorkOrder }: Props) {
+export function IssueDetailPanel({ detail, role, position, onClose, onCreateWorkOrder, onAdvanceWorkOrder, onAddPhoto, imageRetry, onReload }: Props) {
   const { issue, riskAssessment, observations } = detail;
   const severity = highestSeverity(observations);
   return (
@@ -71,7 +78,7 @@ export function IssueDetailPanel({ detail, role, position, onClose, onCreateWork
       </header>
       <div className={styles.grid}>
         <div className={styles.column}>
-          <EvidenceList observations={observations} truncated={detail.observationsTruncated} />
+          <EvidenceList observations={observations} truncated={detail.observationsTruncated} retry={imageRetry} onReload={onReload} />
         </div>
         <div className={styles.column}>
           <ScoreBreakdown risk={riskAssessment} />
@@ -116,8 +123,12 @@ export function IssueDetailPanel({ detail, role, position, onClose, onCreateWork
             issueStatus={issue.status}
             riskAssessmentId={riskAssessment?.id ?? null}
             workOrders={detail.workOrders}
+            resolutionEvidence={detail.resolutionEvidence ?? []}
             onCreate={onCreateWorkOrder}
             onAdvance={onAdvanceWorkOrder}
+            onAddPhoto={onAddPhoto}
+            retry={imageRetry}
+            onReload={onReload}
           />
         </div>
       </div>
