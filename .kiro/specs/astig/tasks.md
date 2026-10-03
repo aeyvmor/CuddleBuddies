@@ -4,10 +4,11 @@ Keep tasks small enough to demo incrementally. A task is done only when its acce
 
 ## P0 — Align interfaces and scaffold
 
-- [ ] Agree web/mobile/backend languages and local development commands.
+- [ ] Confirm the recommended workspace/tool versions and local development commands.
 - [ ] Assign four owners and name one integrator.
 - [ ] Lock observation, detection, issue, risk, and work-order API/data contracts.
 - [ ] Agree demo route/data source and the first end-to-end acceptance story.
+- [ ] Complete the pre-build readiness gate in `docs/operations/prebuild-setup.md`.
 
 **Done when:** each team member can work against the same contracts and the repository's setup instructions are executable.
 

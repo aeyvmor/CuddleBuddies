@@ -19,8 +19,10 @@ Prove one end-to-end operational loop: capture or seed a geolocated image → va
 
 ## Hackathon boundaries
 
-Required direction: React operational web app, smartphone capture, AWS S3, API Gateway/Lambda-style API and processing, Postgres/PostGIS, vision provider (Gemini is the proposed hackathon option), and Amazon Quick/Quick Sight analytics.
+Required direction: Android smartphone capture, React operational web app, AWS S3, API Gateway/Lambda-style API and processing, Postgres/PostGIS, vision provider (Gemini is the proposed hackathon option), and Amazon Quick/Quick Sight analytics.
 
 Out of scope unless explicitly re-approved: full hydrological simulation, autonomous dispatch, continuous video upload, a complete citizen app, custom model training, nationwide rollout, and fleet/workforce route optimization.
 
-Mobile framework, backend language, IaC tool, auth implementation, map provider, and final AWS topology remain open until the team records a decision.
+Current team direction: Android-only React Native (Expo development build recommended, pending native-library validation), React + Vite + TypeScript web, and TypeScript/Node API + worker. The CSS design-token approach is intended to let the separate UI designer evolve visual direction without changing feature logic.
+
+Recommended defaults still requiring kickoff confirmation: npm workspaces, Zod shared runtime contracts, explicit SQL migrations + `pg` for PostGIS, Docker PostGIS locally, AWS CDK in TypeScript, map provider, auth implementation, and final AWS topology.

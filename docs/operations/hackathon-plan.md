@@ -12,10 +12,10 @@ If phone capture or live AI threatens this path, use clearly labeled synthetic d
 
 | Person | Primary ownership | Concrete deliverables | Pair/support points |
 | --- | --- | --- | --- |
-| You — backend/database | Postgres/PostGIS, migrations, API/data contracts, scoring persistence, upload/processing interfaces | Core schema and seed data; issue/work-order API; score factors/version; local DB instructions; failure/idempotency behavior | Define contracts with mobile/web first; help integrate end-to-end |
-| Teammate 2 — mobile capture | Phone session, location, distance sampling, image queue/upload | Start/stop session; capture metadata; offline/pending queue; direct upload flow or a reliable capture fallback | Pair with you on capture metadata and presigned URL contract |
-| Teammate 3 — web | React map and operations workflow | Issue list/map, filters, issue detail/evidence/score, work-order create/update | Pair with you on API contract; integrate against synthetic seed data early |
-| Teammate 4 — AI/infrastructure/integration | Vision provider adapter and AWS deployment path; own end-to-end integration/demo coordination | Validated structured inference; S3/worker path; environment/deployment notes; demo and analytics integration | Coordinate early with you on DB/worker contract; request help for infrastructure/UI edges |
+| You — backend/database + AWS learner/operator | Postgres/PostGIS, migrations, TypeScript API/data contracts, AWS account/deployment path with guided checks, scoring persistence, upload/processing interfaces | Core schema and seed data; issue/work-order API; score factors/version; local DB instructions; staged AWS setup with verified identity/budget; failure/idempotency behavior | Define contracts with the client owner first; ask a teammate/account owner to review AWS changes before deployment |
+| Teammate 2 — client owner | Android React Native capture **and** React + Vite web dashboard | Session/capture/location/upload; map, issue detail, filters, score display, work-order UI | Pair with you on the shared contract early; split client sub-tasks internally only if bandwidth allows |
+| Teammate 3 — hackathon requirements and QA support | Translate event requirements into a checklist; validate product/story, collect approved demo materials, test acceptance paths, maintain issues/demo script | Requirement traceability; test cases; UX/content feedback; demo rehearsal and fallback checklist | Support both client and backend owners; do not create a second competing spec or change API fields without agreement |
+| Teammate 4 — integration and remaining requirements support | Cross-cutting integration, analytics/Quick feasibility, pitch/demo support, and unblock the busiest owner | End-to-end smoke tests; integration checklist; analytics demo path; judging narrative and operational caveats | Coordinate shared checkpoints; can pick up discrete AI/worker/infrastructure tasks after agreement, but you remain AWS deploy owner |
 
 Swap or combine roles if that better fits actual teammate skills, but explicitly name one integrator/demo owner. Avoid parallel implementation against unreviewed endpoint or schema assumptions.
 
@@ -24,8 +24,8 @@ Swap or combine roles if that better fits actual teammate skills, but explicitly
 ### 1. Kickoff and contract lock
 
 - Read `.kiro/specs/astig/requirements.md` and `docs/architecture/system-overview.md`.
-- Choose mobile/web/backend runtimes, local PostGIS approach, map provider, auth/demo mode, IaC approach, and inference provider.
-- Assign owners and identify the integrator.
+- Confirm the recommended monorepo, local PostGIS, map provider, auth/demo mode, IaC approach, and inference provider.
+- Assign owners and identify the integrator; client owner covers both mobile and web.
 - Agree one observation JSON, one detection output, one issue detail shape, one score breakdown, and allowed work-order states.
 - Choose whether the main demo uses a real capture, synthetic seed, or both.
 
@@ -34,15 +34,15 @@ Swap or combine roles if that better fits actual teammate skills, but explicitly
 ### 2. Get the workflow visible early
 
 - Backend/database: create a small PostGIS schema and deterministic seed dataset.
-- Web: render seeded issues on the map and show details/score.
-- Integrator: run the app locally and expose blockers immediately.
-- Mobile/AI: work against the same agreed metadata and detection shapes.
+- Client owner: render seeded issues on the map while proving a minimal Android capture path.
+- You: create the schema/API/score and expose a stable seeded issue response early.
+- Support owners: validate the acceptance checklist and surface blockers immediately.
 
 **Exit check:** a judge can already see an issue and understand why it is prioritized, even before live capture or AI is connected.
 
 ### 3. Connect real processing
 
-- Mobile obtains upload authorization and uploads image evidence directly to S3.
+- Mobile client obtains upload authorization and uploads image evidence directly to S3.
 - Worker validates metadata and AI output, writes explicit processing status, and associates the observation to an issue.
 - Database/API remain the authoritative source for score and work-order state.
 - Make retries safe and show failure states.

@@ -20,25 +20,28 @@ AI findings are advisory. ASTIG does not claim to predict floods or autonomously
 | `services/worker/` | Asynchronous image validation, AI inference, and observation processing |
 | `packages/contracts/` | Shared request, response, and AI-output schemas |
 | `packages/domain/` | Testable risk-scoring and issue-domain rules |
+| `packages/design-tokens/` | Cross-platform semantic design tokens for a replaceable visual system |
 | `database/` | Postgres/PostGIS migrations, seeds, and local database support |
 | `infra/aws/` | AWS deployment and environment configuration |
 | `docs/` | Product, architecture, API, data, privacy, and demo references |
 | `.kiro/` | Kiro requirements, design, implementation tasks, and steering |
 | `memory/` | Short handoff notes for continuity between working sessions |
 
-The directory layout is intentionally language-neutral until the team confirms mobile and backend language choices. See [the kickoff and architecture decisions](docs/architecture/decisions.md) before adding frameworks or dependencies.
+The directory layout reserves clear app/service boundaries while the team finalizes dependencies and native-module requirements. See [the kickoff and architecture decisions](docs/architecture/decisions.md) before adding frameworks or dependencies.
 
 ## Start here
 
 1. Read [the product and architecture rundown](docs/architecture/system-overview.md).
 2. Review [the MVP requirements and out-of-scope list](.kiro/specs/astig/requirements.md).
-3. Resolve the decisions marked **OPEN** in [architecture decisions](docs/architecture/decisions.md).
+3. Review the selected stack and recommendations in [architecture decisions](docs/architecture/decisions.md).
 4. Agree on API and data contracts before parallel implementation.
 5. Track current ownership and blockers in [team handoff](memory/current-state.md).
 
+Before installing dependencies or creating app code, follow the [team setup checklist](docs/operations/prebuild-setup.md) and use the [role-specific starter prompts](docs/operations/role-prompts.md).
+
 ## Local setup
 
-This repository currently contains planning and structure only; application runtimes and dependencies have not yet been selected or installed. Once the team locks those choices, add the root development commands and per-app setup instructions here.
+This repository currently contains planning and setup documentation only; application dependencies, database migrations, and cloud resources have not yet been created. The current stack direction is Android React Native, React + Vite + TypeScript web, TypeScript/Node API and worker, and Postgres/PostGIS. Finish the [pre-build setup checklist](docs/operations/prebuild-setup.md) before scaffolding those applications.
 
 Never commit credentials. Keep local secrets in ignored `.env` files and document required variable names in `.env.example` files without real values.
 
