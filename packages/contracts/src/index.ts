@@ -7,3 +7,5 @@ export * from "./work-order";
 export * from "./issue";
 export * from "./errors";
 export * from "./auth";
+export * from "./session";
+export * from "./processing";

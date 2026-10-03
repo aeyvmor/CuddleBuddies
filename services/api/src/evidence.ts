@@ -1,12 +1,20 @@
 import type { EvidenceAccess } from "@astig/contracts";
 
 /**
- * Produces a short-lived, read-only URL for a private evidence object. The S3 implementation
- * (presigned GET) is added with the evidence bucket; until then no signer is configured and the
- * API reports evidence as explicitly UNAVAILABLE instead of exposing keys or public URLs.
+ * Short-lived access to private evidence objects. The S3 implementation lives in
+ * s3-evidence.ts; when no bucket is configured (local dev) the API reports evidence as
+ * explicitly UNAVAILABLE and refuses to issue upload URLs, instead of faking access.
  */
 export interface EvidenceUrlSigner {
   sign(objectKey: string): Promise<{ url: string; expiresAt: string }>;
+}
+
+export interface EvidenceUploadSigner {
+  signUpload(params: {
+    objectKey: string;
+    contentType: "image/jpeg";
+    contentLengthBytes: number;
+  }): Promise<{ url: string; expiresAt: string }>;
 }
 
 export async function evidenceAccess(

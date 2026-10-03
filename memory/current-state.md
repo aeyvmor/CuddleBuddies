@@ -12,7 +12,7 @@
 - Added pre-build setup checklist and four role-specific AI coding prompts.
 - **First backend slice exists (local only):** npm workspaces root; `packages/contracts` (Zod v0 draft); `packages/domain` (risk score + work-order transitions); `database` (migration 0001, synthetic seed, migrate/seed/reset scripts, Docker PostGIS on 5433); `services/api` (`GET /issues/{id}`, `POST /issues/{id}/work-orders`, `PATCH /work-orders/{id}`, auth boundary, Lambda adapter, local dev server); `infra/aws` (CDK stack with a private evidence bucket only, **not deployed**).
 - Contract draft in `docs/api/contract-v0-proposal.md` is **pending team confirmation**.
-- No AWS resources have been created. No account/region has been verified yet.
+- **AWS (2026-10-04):** owner's account, region `ap-southeast-1` (Singapore). Root has MFA; `astig-hackathon` budget is $10/month with email alerts. IAM Identity Center user with AdministratorAccess (8h sessions) is used instead of root; the local CLI profile is `astig` (SSO, no static keys). CDK is bootstrapped and `Astig-dev-Evidence` is deployed: private SSE-S3 bucket `astig-dev-evidence-evidencebucketfba44255-wuuvhuxdsgzy`, TLS-only, 30-day expiry, retained on stack delete. No compute, database, or network resources yet. Cleanup after the event: empty and delete the bucket, delete `Astig-dev-Evidence` and `CDKToolkit`.
 - Initial branch was clean at scaffold start.
 
 ## Team

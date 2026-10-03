@@ -2,12 +2,19 @@ import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Client } from "pg";
+import type { ClientBase as Client } from "pg";
 
-export const MIGRATIONS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../migrations");
+export const MIGRATIONS_DIR_ENV = "ASTIG_MIGRATIONS_DIR";
 const MIGRATION_FILE = /^(\d{4})_[a-z0-9_]+\.sql$/;
 // Arbitrary constant so concurrent migrate runs serialize instead of racing.
 const MIGRATION_LOCK_KEY = 7_316_001;
+
+/** Resolved lazily so bundled (Lambda) code can supply the directory via ASTIG_MIGRATIONS_DIR. */
+export function defaultMigrationsDir(): string {
+  const fromEnv = process.env[MIGRATIONS_DIR_ENV];
+  if (fromEnv) return fromEnv;
+  return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../migrations");
+}
 
 export interface MigrationFile {
   version: string;
@@ -16,7 +23,7 @@ export interface MigrationFile {
   checksum: string;
 }
 
-export async function loadMigrations(dir = MIGRATIONS_DIR): Promise<MigrationFile[]> {
+export async function loadMigrations(dir = defaultMigrationsDir()): Promise<MigrationFile[]> {
   const entries = (await readdir(dir)).filter((f) => f.endsWith(".sql")).sort();
   const seen = new Set<string>();
   const files: MigrationFile[] = [];

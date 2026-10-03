@@ -1,15 +1,18 @@
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
-import pg from "pg";
+import { createPoolFromEnv } from "@astig/database";
 import { createApp } from "./app";
 import { loadConfig } from "./config";
 import { MAX_BODY_BYTES } from "./http";
+import { S3EvidenceStorage } from "./s3-evidence";
 
 // Local development server only. Binds to loopback; uses the configured auth mode
 // (normally `local-dev`, which trusts x-astig-dev-* headers and is refused in Lambda/production).
+// If S3_EVIDENCE_BUCKET is set, presigning uses your local AWS profile (aws sso login).
 const config = loadConfig();
-const pool = new pg.Pool({ connectionString: config.databaseUrl, max: 5 });
-const handle = createApp({ pool, authMode: config.authMode, evidenceSigner: null });
+const pool = await createPoolFromEnv({ max: 5 });
+const storage = config.evidenceBucket ? new S3EvidenceStorage(config.evidenceBucket) : null;
+const handle = createApp({ pool, authMode: config.authMode, evidenceSigner: storage, uploadSigner: storage });
 
 const server = createServer(async (req, res) => {
   const chunks: Buffer[] = [];
@@ -34,7 +37,7 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(config.port, "127.0.0.1", () => {
-  console.log(`ASTIG API (auth: ${config.authMode}) listening on http://127.0.0.1:${config.port}`);
+  console.log(`ASTIG API (auth: ${config.authMode}, evidence: ${storage ? "S3" : "not configured"}) listening on http://127.0.0.1:${config.port}`);
 });
 
 const shutdown = () => server.close(() => void pool.end());

@@ -11,7 +11,9 @@ export const ErrorCode = z.enum([
   "ACTIVE_WORK_ORDER_EXISTS",
   "RISK_ASSESSMENT_MISMATCH",
   "IDEMPOTENCY_CONFLICT",
+  "ALREADY_UPLOADED",
   "INTERNAL_ERROR",
+  "SERVICE_UNAVAILABLE",
 ]);
 export type ErrorCode = z.infer<typeof ErrorCode>;
 
@@ -26,7 +28,9 @@ export const ERROR_HTTP_STATUS: Record<ErrorCode, number> = {
   ACTIVE_WORK_ORDER_EXISTS: 409,
   RISK_ASSESSMENT_MISMATCH: 409,
   IDEMPOTENCY_CONFLICT: 409,
+  ALREADY_UPLOADED: 409,
   INTERNAL_ERROR: 500,
+  SERVICE_UNAVAILABLE: 503,
 };
 
 export const ErrorDetail = z.strictObject({
