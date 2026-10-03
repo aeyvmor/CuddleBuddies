@@ -27,9 +27,10 @@ export interface MotionConfig {
 }
 
 export const DEFAULT_MOTION_CONFIG: MotionConfig = {
-  windowMs: 1500,
+  // One second still spans two steps at a walking cadence, and lets the gate close sooner after a stop.
+  windowMs: 1000,
   // Hand-held walking on the test phone measured 0.05 to 0.12 g; at rest it was below 0.02 g.
-  minAccelStdG: 0.04,
+  minAccelStdG: 0.045,
   maxGyroRadS: 1.0,
   minGpsSpeedMps: 1.0,
   staleMs: 1000,
