@@ -1,27 +1,38 @@
 import {
   CreateWorkOrderRequest,
   CreateWorkOrderResponse,
+  CreateSessionRequest,
+  CreateUploadUrlRequest,
+  EndSessionRequest,
   ErrorResponse,
   IssueDetailResponse,
+  ObservationCaptureRequest,
+  RegisterObservationResponse,
+  SessionResponse,
   UpdateWorkOrderRequest,
   UpdateWorkOrderResponse,
+  UploadUrlResponse,
   Uuid,
   type Role,
 } from "@astig/contracts";
-import { DataError, withTransaction } from "@astig/database";
+import { DataError, registerObservation, withTransaction } from "@astig/database";
 import type { Pool, PoolClient } from "pg";
 import type { z } from "zod";
 import { authenticate, requireRole, type AuthMode, type Principal } from "./auth";
 import { ApiError, validationError } from "./errors";
-import type { EvidenceUrlSigner } from "./evidence";
+import type { EvidenceUploadSigner, EvidenceUrlSigner } from "./evidence";
 import { MAX_BODY_BYTES, type ApiRequest, type ApiResponse } from "./http";
 import { getIssueDetail } from "./repositories/issues";
+import { createSession, endSession } from "./repositories/sessions";
+import { createUploadUrl } from "./repositories/uploads";
 import { createWorkOrder, updateWorkOrder } from "./repositories/work-orders";
 
 export interface AppDeps {
   pool: Pool;
   authMode: AuthMode;
   evidenceSigner: EvidenceUrlSigner | null;
+  /** Null when no evidence bucket is configured; upload URLs then fail with SERVICE_UNAVAILABLE. */
+  uploadSigner?: EvidenceUploadSigner | null;
   log?: (entry: Record<string, unknown>) => void;
 }
 
@@ -117,6 +128,70 @@ export function createApp(deps: AppDeps): (req: ApiRequest) => Promise<ApiRespon
           updateWorkOrder(c, { workOrderId, request, actorSubject: principal.subject }),
         );
         return { status: 200, body: { workOrder }, schema: UpdateWorkOrderResponse };
+      },
+    },
+    {
+      method: "POST",
+      name: "POST /sessions",
+      pattern: /^\/sessions$/,
+      role: "OPERATOR",
+      handle: async ({ req, principal }) => {
+        const request = parseBody(req, CreateSessionRequest);
+        const result = await withTransaction(deps.pool, (c) => createSession(c, { request, operatorSubject: principal.subject }));
+        return { status: result.created ? 201 : 200, body: result, schema: SessionResponse };
+      },
+    },
+    {
+      method: "PATCH",
+      name: "PATCH /sessions/{id}",
+      pattern: /^\/sessions\/([^/]+)$/,
+      role: "OPERATOR",
+      handle: async ({ req, params, principal }) => {
+        const sessionId = parseId(params[0]!, "session id");
+        const request = parseBody(req, EndSessionRequest);
+        const session = await withTransaction(deps.pool, (c) =>
+          endSession(c, { sessionId, request, operatorSubject: principal.subject }),
+        );
+        return { status: 200, body: { session }, schema: SessionResponse };
+      },
+    },
+    {
+      method: "POST",
+      name: "POST /sessions/{id}/observations",
+      pattern: /^\/sessions\/([^/]+)\/observations$/,
+      role: "OPERATOR",
+      handle: async ({ req, params, principal }) => {
+        const sessionId = parseId(params[0]!, "session id");
+        const capture = parseBody(req, ObservationCaptureRequest);
+        const result = await withTransaction(deps.pool, (c) =>
+          registerObservation(c, { sessionId, actorSubject: principal.subject, capture }),
+        );
+        const o = result.observation;
+        const body = {
+          created: result.created,
+          observation: {
+            id: o.id,
+            sessionId: o.sessionId,
+            clientObservationId: o.clientObservationId,
+            processingStatus: o.processingStatus,
+            isSynthetic: o.isSynthetic,
+            createdAt: o.createdAt,
+          },
+        };
+        return { status: result.created ? 201 : 200, body, schema: RegisterObservationResponse };
+      },
+    },
+    {
+      method: "POST",
+      name: "POST /upload-url",
+      pattern: /^\/upload-url$/,
+      role: "OPERATOR",
+      handle: async ({ req, principal }) => {
+        const request = parseBody(req, CreateUploadUrlRequest);
+        const body = await readSnapshot(deps.pool, (c) =>
+          createUploadUrl(c, { request, operatorSubject: principal.subject, signer: deps.uploadSigner ?? null }),
+        );
+        return { status: 200, body, schema: UploadUrlResponse };
       },
     },
   ];

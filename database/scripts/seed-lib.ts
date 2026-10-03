@@ -1,6 +1,6 @@
 import { Detection } from "@astig/contracts";
 import { computeRiskScore, evidenceObjectKey, normalizeRecurrence, normalizeSeverity, type RiskInputs } from "@astig/domain";
-import type { Client } from "pg";
+import type { ClientBase as Client } from "pg";
 import { idempotencyFingerprint } from "../src/fingerprint";
 import { insertRiskAssessment } from "../src/risk-assessments";
 import { SEED, SEED_ISSUES, SEED_OBSERVATIONS, SEED_SESSIONS, SEED_WORK_ORDERS } from "../seeds/synthetic-demo";

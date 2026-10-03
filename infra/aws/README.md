@@ -1,6 +1,6 @@
 # AWS infrastructure (CDK, TypeScript)
 
-This is reviewable infrastructure code for the hackathon deployment. **Nothing in this folder has been deployed.** Synthesizing produces a CloudFormation template locally and does not contact AWS.
+This is reviewable infrastructure code for the hackathon deployment. **Deployed state (2026-10-04):** the dev account in `ap-southeast-1` is CDK-bootstrapped (`CDKToolkit`), and `Astig-dev-Evidence` is deployed. Deploys use the account owner's IAM Identity Center login (`aws sso login --profile astig`); no long-lived access keys exist. Synthesizing produces a CloudFormation template locally and does not contact AWS.
 
 ## What the code defines today
 

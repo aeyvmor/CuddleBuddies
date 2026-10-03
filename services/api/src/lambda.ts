@@ -1,7 +1,8 @@
-import pg from "pg";
+import { createPoolFromEnv } from "@astig/database";
 import { createApp } from "./app";
 import { loadConfig } from "./config";
 import type { ApiResponse } from "./http";
+import { S3EvidenceStorage } from "./s3-evidence";
 
 /** Minimal subset of the API Gateway HTTP API (payload v2.0) event used here. */
 interface HttpApiEventV2 {
@@ -16,23 +17,26 @@ interface HttpApiEventV2 {
   };
 }
 
-let handler: ReturnType<typeof createApp> | undefined;
+let handlerPromise: Promise<ReturnType<typeof createApp>> | undefined;
 
-function getHandler(): ReturnType<typeof createApp> {
-  if (!handler) {
-    const config = loadConfig();
-    // One small pool per Lambda container; connection count is bounded by Lambda concurrency.
-    const pool = new pg.Pool({ connectionString: config.databaseUrl, max: 2, idleTimeoutMillis: 30_000 });
-    handler = createApp({ pool, authMode: config.authMode, evidenceSigner: null });
-  }
-  return handler;
+async function buildHandler(): Promise<ReturnType<typeof createApp>> {
+  const config = loadConfig();
+  // One small pool per Lambda container; total connections are bounded by Lambda concurrency.
+  const pool = await createPoolFromEnv({ max: 2 });
+  const storage = config.evidenceBucket ? new S3EvidenceStorage(config.evidenceBucket) : null;
+  return createApp({ pool, authMode: config.authMode, evidenceSigner: storage, uploadSigner: storage });
 }
 
-/** Lambda entry point for API Gateway HTTP API (JWT authorizer). Not deployed in this slice. */
+/** Lambda entry point for API Gateway HTTP API with a JWT (Cognito) authorizer. */
 export async function lambdaHandler(event: HttpApiEventV2): Promise<ApiResponse> {
+  handlerPromise ??= buildHandler().catch((err) => {
+    handlerPromise = undefined; // retry initialization on the next request instead of caching failure
+    throw err;
+  });
+  const handle = await handlerPromise;
   const headers = Object.fromEntries(Object.entries(event.headers ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
   const body = event.body === undefined ? null : event.isBase64Encoded ? Buffer.from(event.body, "base64").toString("utf8") : event.body;
-  return getHandler()({
+  return handle({
     method: event.requestContext.http.method,
     path: event.rawPath,
     headers,

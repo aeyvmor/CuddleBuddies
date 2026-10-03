@@ -1,0 +1,62 @@
+import { MAX_UPLOAD_BYTES, PROCESSING_SCHEMA_VERSION, Detection, type BeginResult, type CompleteResult, type PersistRequest } from "@astig/contracts";
+import { parseEvidenceObjectKey } from "@astig/domain";
+import { ProviderError, type VisionProvider } from "./provider";
+
+/** Minimal S3 event shape (ObjectCreated notifications). */
+export interface S3Event {
+  Records: { s3: { bucket: { name: string }; object: { key: string; size?: number } } }[];
+}
+
+export interface IngestDeps {
+  provider: VisionProvider;
+  readObject: (bucket: string, key: string) => Promise<{ bytes: Uint8Array; contentType: string }>;
+  persist: <R extends BeginResult | CompleteResult>(request: PersistRequest) => Promise<R>;
+  log?: (entry: Record<string, unknown>) => void;
+}
+
+/** S3 keys in events are URL-encoded with '+' for spaces. */
+export const decodeS3Key = (raw: string) => decodeURIComponent(raw.replace(/\+/g, " "));
+
+/**
+ * S3 → vision provider → persistence. Runs outside the VPC so it can reach the provider.
+ * Provider errors and invalid output become explicit FAILED records. Errors talking to the
+ * persistence function are rethrown so Lambda's async retry re-delivers the event.
+ */
+export function createIngestHandler(deps: IngestDeps) {
+  const log = deps.log ?? ((e) => console.log(JSON.stringify(e)));
+
+  return async function handle(event: S3Event): Promise<void> {
+    for (const record of event.Records) {
+      const key = decodeS3Key(record.s3.object.key);
+      if (!parseEvidenceObjectKey(key)) {
+        log({ level: "warn", msg: "ignoring object with unrecognized key", keyLength: key.length });
+        continue;
+      }
+      const begin = await deps.persist<BeginResult>({ schemaVersion: PROCESSING_SCHEMA_VERSION, action: "BEGIN", objectKey: key });
+      if (!begin.proceed) {
+        log({ level: begin.reason === "UNKNOWN_OBJECT" ? "warn" : "info", msg: "skipping", reason: begin.reason });
+        continue;
+      }
+
+      let outcome: Extract<PersistRequest, { action: "COMPLETE" }>["outcome"];
+      try {
+        if ((record.s3.object.size ?? 0) > MAX_UPLOAD_BYTES) throw new ProviderError("IMAGE_TOO_LARGE", "Image exceeds the upload limit.");
+        const image = await deps.readObject(record.s3.bucket.name, key);
+        const raw = await deps.provider.analyze({ image: image.bytes, contentType: image.contentType });
+        const parsed = Detection.safeParse(raw);
+        outcome = parsed.success
+          ? { kind: "DETECTION", detection: parsed.data }
+          : { kind: "FAILURE", code: "INVALID_MODEL_OUTPUT", message: "Model output failed schema validation." };
+      } catch (err) {
+        outcome =
+          err instanceof ProviderError
+            ? { kind: "FAILURE", code: err.code, message: err.message.slice(0, 500) }
+            : { kind: "FAILURE", code: "PROVIDER_ERROR", message: "Vision provider call failed." };
+        log({ level: "warn", msg: "processing failed", observationId: begin.observationId, code: outcome.code, provider: deps.provider.name, errorName: (err as Error)?.name });
+      }
+
+      const done = await deps.persist<CompleteResult>({ schemaVersion: PROCESSING_SCHEMA_VERSION, action: "COMPLETE", objectKey: key, outcome });
+      log({ level: "info", msg: "processed", observationId: begin.observationId, result: done });
+    }
+  };
+}

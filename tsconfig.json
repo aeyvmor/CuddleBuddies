@@ -25,9 +25,12 @@
     "database/src",
     "database/scripts",
     "database/seeds",
+    "database/lambda",
     "database/test",
     "services/api/src",
     "services/api/test",
+    "services/worker/src",
+    "services/worker/test",
     "infra/aws/bin",
     "infra/aws/lib",
     "infra/aws/test"

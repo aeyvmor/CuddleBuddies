@@ -12,6 +12,7 @@
     "packages/domain",
     "database",
     "services/api",
+    "services/worker",
     "infra/aws"
   ],
   "scripts": {
