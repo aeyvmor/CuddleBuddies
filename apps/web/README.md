@@ -8,7 +8,7 @@ Do not depend on Google Street View for the hackathon MVP. Prefer team-captured 
 
 ## Current status
 
-- **Data source:** an in-memory **mock API** (`src/api/mockClient.ts`) serving **synthetic, labeled** records (`src/data/syntheticData.ts`). Nothing here is real captured data. The backend owner is wiring the HTTP client (`packages/api-client`) and choosing the map provider.
+- **Data source:** by default the **live backend** (`src/api/httpClient.ts` over `@astig/api-client`) behind a Cognito sign-in (`src/components/SignIn.tsx`; first login asks for a new password). Set `VITE_ASTIG_API=mock` (e.g. in `.env.local`) to use the in-memory **synthetic mock** (`src/api/mockClient.ts`) with no login. Tests use the mock. Live data mixes labeled synthetic seed records and the dashcam-replay demo issue (both `isSynthetic`). The role selector only changes what the UI offers; the API enforces the signed-in user's Cognito groups. See `docs/api/integration-guide.md`.
 - **Contracts:** shapes come from `@astig/contracts` (draft v0). The mock validates requests with the shared Zod schemas and checks its own responses against them. A test parses every synthetic record with `IssueDetailResponse`.
 - **Server rules mirrored by the mock:**
   - officer-only issue detail and writes (`FORBIDDEN`);

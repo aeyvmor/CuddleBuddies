@@ -1,0 +1,113 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: var(--color-canvas);
+  padding: 1.5rem;
+}
+
+.card {
+  width: min(100%, 26rem);
+  display: grid;
+  gap: 1rem;
+  padding: 2rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+}
+
+.brand {
+  margin: 0;
+  font-weight: 800;
+  color: var(--color-brand);
+}
+
+.tag {
+  font-size: 0.75em;
+  color: var(--color-text-muted);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--color-text);
+}
+
+.help,
+.note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.375rem;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.field input {
+  font: inherit;
+  font-weight: 400;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-control-border);
+  border-radius: 0.5rem;
+}
+
+.field input:focus-visible,
+.submit:focus-visible,
+.signout:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.error {
+  margin: 0;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
+  color: var(--color-danger);
+  background: var(--color-danger-tint);
+}
+
+.submit {
+  font: inherit;
+  font-weight: 700;
+  padding: 0.75rem;
+  border: 0;
+  border-radius: 0.5rem;
+  color: var(--color-text-on-accent);
+  background: var(--color-accent);
+  cursor: pointer;
+}
+
+.submit:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Thin "signed in" bar shown above the dashboard in live mode. */
+.session {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.375rem 1rem;
+  font-size: 0.875rem;
+  color: var(--color-frame-text);
+  background: var(--color-frame);
+}
+
+.signout {
+  font: inherit;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--color-frame-muted);
+  border-radius: 0.375rem;
+  color: var(--color-frame-text);
+  background: transparent;
+  cursor: pointer;
+}
