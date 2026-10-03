@@ -38,7 +38,7 @@ npm run db:down             # stop the container (data volume is kept)
 
 ## Synthetic seed
 
-`seeds/synthetic-demo.ts` holds fixed UUIDs and UTC timestamps: 3 issues, 7 observations (including one explicit `FAILED` and one `PENDING`), 3 risk assessments, and 2 work orders. Every row has `is_synthetic = true`, and the seed's free-text values start with `SYNTHETIC`. Coordinates sit on public roads around a public park in Quezon City as a pilot-area placeholder. Scores are computed by `@astig/domain`; weather and hazard inputs are `UNKNOWN`, and the one exposure value is labeled a synthetic assumption. No images are committed.
+`seeds/synthetic-demo.ts` holds fixed UUIDs and UTC timestamps: 3 issues, 7 observations (including one explicit `FAILED` and one `PENDING`), 3 risk assessments, and 2 work orders. Every row has `is_synthetic = true`, and the seed's free-text values start with `SYNTHETIC`. Coordinates sit on public roads around a public park in Quezon City as a pilot-area placeholder. Scores are computed by `@astig/domain`; weather and hazard inputs are `UNKNOWN`, and the one exposure value is labeled a synthetic assumption. No images are committed. On the deployed stack, the 5 issue-linked seed observations have **labelled placeholder images** ("SYNTHETIC DEMO IMAGE … Seed record - not a real capture", generated with ffmpeg) uploaded to their server-derived keys. Without them the API returns valid signed URLs to missing objects and the UI shows broken images. They survive `reset-demo` (same deterministic keys) and expire with the bucket's 30-day lifecycle; re-upload them if a deployment is older than that. The worker skips them as `ALREADY_COMPLETED`.
 
 ## Shared data functions (`src/`)
 
