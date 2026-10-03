@@ -2,6 +2,8 @@
 
 Use these prompts after the [pre-build setup checklist](prebuild-setup.md) is complete and the team has frozen the shared contracts. The current team split is: you own backend + AWS; one teammate owns both mobile and web; the other two support requirements, QA, integration, analytics, and demo. Keep all work in this repository and review generated changes before merging.
 
+> **Integration phase (2026-10-04):** the backend is deployed. To connect the web and mobile clients, use [prompts/connect-clients.md](prompts/connect-clients.md).
+
 ## Shared instruction to prepend
 
 ```text

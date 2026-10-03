@@ -51,7 +51,14 @@ npm test && npm run test:db          # unit + database integration tests
 npm run api:dev                      # local API on 127.0.0.1:3001
 ```
 
-See `database/README.md`, `services/api/README.md`, and `infra/aws/README.md`. The mobile, web, and worker apps are not scaffolded yet; follow the [pre-build setup checklist](docs/operations/prebuild-setup.md) for them.
+See `database/README.md`, `services/api/README.md`, `services/worker/README.md`, and `infra/aws/README.md`.
+
+**Deployed (dev, ap-southeast-1):**
+- Web: `https://astig-xi.vercel.app` (auto-deploys from `main`).
+- API: `https://2jpf5wobhl.execute-api.ap-southeast-1.amazonaws.com`, behind a Cognito login.
+- Analytics: QuickSight dashboard `ASTIG Operations`.
+
+To connect the web or mobile app, read [`docs/api/integration-guide.md`](docs/api/integration-guide.md); the step-by-step prompt is in [`docs/operations/prompts/connect-clients.md`](docs/operations/prompts/connect-clients.md). The mobile app (`apps/mobile`) is a separate Expo project with its own `npm ci`.
 
 Never commit credentials. Keep local secrets in ignored `.env` files and document required variable names in `.env.example` files without real values.
 
