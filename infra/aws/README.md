@@ -36,6 +36,14 @@ Send `Authorization: Bearer <Cognito access or ID token>`. Roles come from Cogni
 
 QuickSight reads only the analytics bucket, never the evidence bucket or the database. The manifests are `s3://<AnalyticsBucketName>/analytics/manifests/issues.json` and `.../sessions.json`.
 
+- **Set up (2026-10-04):**
+  - Enterprise account.
+  - User role set to `ADMIN`, not `ADMIN_PRO`.
+  - S3 access granted to the analytics bucket only.
+  - Data sources `astig-issues-s3` and `astig-sessions-s3`.
+  - SPICE datasets `ASTIG issues` and `ASTIG sessions`, with typed columns and latitude/longitude geo-tagged; the first import took 3 rows each, 0 dropped.
+- **Refresh from the CLI:** `aws quicksight create-ingestion --aws-account-id <id> --data-set-id astig-issues --ingestion-id <unique>`; same for `astig-sessions`.
+
 - **Cost:** 1 Author at $24/month.
 - **Avoid the $250/month fee:** don't create Pro users, and don't enable Q&A (topics or dashboard Q&A).
 - **Demo refresh:** after a work-order change, invoke `AnalyticsExportFunctionName` (or wait up to 15 minutes), then click **Refresh now** on the QuickSight dataset.
