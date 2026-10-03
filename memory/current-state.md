@@ -17,6 +17,8 @@
 - **AWS (2026-10-04):** owner's account, `ap-southeast-1`. Root has MFA, the budget alert is **$40/month**, the Identity Center admin user is used instead of root, and the local CLI profile is `astig` (SSO). Deployed: `CDKToolkit`, `Astig-dev-Evidence` (private bucket), `Astig-dev-App` (isolated VPC with no NAT, private RDS PostgreSQL 17 `db.t4g.micro`, Cognito, HTTP API with JWT, 4 Lambdas, S3→ingest trigger). Running cost is about $1.05/day. The live smoke test passed (see `infra/aws/README.md`). API URL and Cognito IDs are in `infra/aws/README.md`. Teardown steps are in the same README.
 - Initial branch was clean at scaffold start.
 
+- **Integration kit (2026-10-04):** `packages/api-client` (typed fetch client + Cognito login/refresh), `docs/api/integration-guide.md` (web + mobile flows), demo accounts `demo-officer`/`demo-operator`/`demo-admin` (passwords in git-ignored `secrets/demo-accounts.local.md`), team phone/car registered (non-synthetic). Resolution evidence route live; `reset-demo` admin action (confirm `RESET_DEMO_DATA`); 8 alarms → SNS email (**confirm the subscription**). Lambda concurrency limit is 10 (needs a support case if throttled). The Vercel URL must be added to `webOrigins` when known.
+
 ## Team
 
 Four-person team. The user is primarily focused on backend/API and database work and will help across integration. Add teammate names/owners at kickoff.

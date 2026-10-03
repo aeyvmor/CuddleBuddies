@@ -1,0 +1,13 @@
+{
+  "name": "@astig/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Typed ASTIG API client (fetch-based; browser, React Native, Node). Cognito login included.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@astig/contracts": "0.0.0"
+  }
+}

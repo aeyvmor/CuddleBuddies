@@ -119,6 +119,23 @@ export async function getIssueDetail(
     [issueId],
   );
 
+  const reRes = await db.query(
+    `SELECT r.id, r.work_order_id, r.note, r.created_at, r.image_object_key, r.uploaded_at
+       FROM resolution_evidence r JOIN work_orders w ON w.id = r.work_order_id
+      WHERE w.issue_id = $1 ORDER BY r.created_at DESC, r.id DESC LIMIT 50`,
+    [issueId],
+  );
+  const resolutionEvidence = [];
+  for (const r of reRes.rows) {
+    resolutionEvidence.push({
+      id: r.id,
+      workOrderId: r.work_order_id,
+      note: r.note,
+      createdAt: toIso(r.created_at),
+      evidence: await evidenceAccess(signer, r.image_object_key, r.uploaded_at),
+    });
+  }
+
   return {
     schemaVersion: ISSUE_DETAIL_SCHEMA_VERSION,
     issue: {
@@ -138,5 +155,6 @@ export async function getIssueDetail(
     observations,
     observationsTruncated: obsRes.rows.length > ISSUE_DETAIL_OBSERVATION_LIMIT,
     workOrders: woRes.rows.map(mapWorkOrderRow),
+    resolutionEvidence,
   };
 }

@@ -1,5 +1,5 @@
-import { MAX_UPLOAD_BYTES, PROCESSING_SCHEMA_VERSION, Detection, type BeginResult, type CompleteResult, type PersistRequest } from "@astig/contracts";
-import { parseEvidenceObjectKey } from "@astig/domain";
+import { MAX_UPLOAD_BYTES, PROCESSING_SCHEMA_VERSION, Detection, type BeginResult, type CompleteResult, type MarkResolutionResult, type PersistRequest } from "@astig/contracts";
+import { parseEvidenceObjectKey, parseResolutionObjectKey } from "@astig/domain";
 import { ProviderError, type VisionProvider } from "./provider";
 
 /** Minimal S3 event shape (ObjectCreated notifications). */
@@ -10,7 +10,7 @@ export interface S3Event {
 export interface IngestDeps {
   provider: VisionProvider;
   readObject: (bucket: string, key: string) => Promise<{ bytes: Uint8Array; contentType: string }>;
-  persist: <R extends BeginResult | CompleteResult>(request: PersistRequest) => Promise<R>;
+  persist: <R extends BeginResult | CompleteResult | MarkResolutionResult>(request: PersistRequest) => Promise<R>;
   log?: (entry: Record<string, unknown>) => void;
 }
 
@@ -28,6 +28,12 @@ export function createIngestHandler(deps: IngestDeps) {
   return async function handle(event: S3Event): Promise<void> {
     for (const record of event.Records) {
       const key = decodeS3Key(record.s3.object.key);
+      if (parseResolutionObjectKey(key)) {
+        // "After" image: record the upload only; no inference on resolution evidence.
+        const r = await deps.persist<MarkResolutionResult>({ schemaVersion: PROCESSING_SCHEMA_VERSION, action: "MARK_RESOLUTION_UPLOADED", objectKey: key });
+        log({ level: r.marked || r.reason === "ALREADY_MARKED" ? "info" : "warn", msg: "resolution evidence upload", result: r });
+        continue;
+      }
       if (!parseEvidenceObjectKey(key)) {
         log({ level: "warn", msg: "ignoring object with unrecognized key", keyLength: key.length });
         continue;

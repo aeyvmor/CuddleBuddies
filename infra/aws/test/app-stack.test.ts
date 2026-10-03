@@ -111,20 +111,22 @@ describe("AppStack compute and access", () => {
     t.hasResourceProperties("AWS::Cognito::UserPoolGroup", { GroupName: "OPERATOR" });
   });
 
-  it("triggers ingest only for observation images", () => {
+  it("triggers ingest only for .jpg observation and resolution images", () => {
+    const rule = (prefix: string) =>
+      Match.objectLike({ Events: ["s3:ObjectCreated:*"], Filter: { Key: { FilterRules: Match.arrayWith([{ Name: "suffix", Value: ".jpg" }, { Name: "prefix", Value: prefix }]) } } });
     t.hasResourceProperties("Custom::S3BucketNotifications", {
-      NotificationConfiguration: {
-        LambdaFunctionConfigurations: [
-          Match.objectLike({
-            Events: ["s3:ObjectCreated:*"],
-            Filter: { Key: { FilterRules: Match.arrayWith([{ Name: "suffix", Value: ".jpg" }, { Name: "prefix", Value: "sessions/" }]) } },
-          }),
-        ],
-      },
+      NotificationConfiguration: { LambdaFunctionConfigurations: [rule("sessions/"), rule("work-orders/")] },
     });
   });
 
   it("sets one-week log retention on every function log group", () => {
     for (const g of resources("AWS::Logs::LogGroup")) expect(g.Properties.RetentionInDays).toBe(7);
+  });
+
+  it("alarms on processing failures, Lambda errors/throttles, and API 5xx via SNS", () => {
+    t.resourceCountIs("AWS::SNS::Topic", 1);
+    t.hasResourceProperties("AWS::Logs::MetricFilter", { FilterPattern: '{ $.msg = "processing failed" }' });
+    expect(Object.keys(t.findResources("AWS::CloudWatch::Alarm")).length).toBe(8);
+    for (const a of resources("AWS::CloudWatch::Alarm")) expect(a.Properties.AlarmActions).toHaveLength(1);
   });
 });

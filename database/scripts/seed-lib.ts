@@ -12,7 +12,7 @@ const unknown = (rationale: string) => ({ status: "UNKNOWN" as const, source: nu
  * (use `npm run db:reset` to return to the pristine seed state) rather than silently merging.
  */
 export async function seed(client: Client, log: (msg: string) => void = console.log): Promise<boolean> {
-  const exists = await client.query("SELECT 1 FROM devices WHERE id = $1", [SEED.deviceId]);
+  const exists = await client.query("SELECT 1 FROM issues WHERE id = $1", [SEED_ISSUES[0]!.id]);
   if (exists.rowCount) {
     log("synthetic seed already present; run `npm run db:reset` for a clean seed state");
     return false;
@@ -20,8 +20,9 @@ export async function seed(client: Client, log: (msg: string) => void = console.
 
   await client.query("BEGIN");
   try {
-    await client.query("INSERT INTO devices (id, label, is_synthetic) VALUES ($1, $2, true)", [SEED.deviceId, "SYNTHETIC demo phone 01"]);
-    await client.query("INSERT INTO vehicles (id, label, is_synthetic) VALUES ($1, $2, true)", [SEED.vehicleId, "SYNTHETIC demo vehicle 01"]);
+    // Devices/vehicles survive a demo reset, so these are idempotent.
+    await client.query("INSERT INTO devices (id, label, is_synthetic) VALUES ($1, $2, true) ON CONFLICT (id) DO NOTHING", [SEED.deviceId, "SYNTHETIC demo phone 01"]);
+    await client.query("INSERT INTO vehicles (id, label, is_synthetic) VALUES ($1, $2, true) ON CONFLICT (id) DO NOTHING", [SEED.vehicleId, "SYNTHETIC demo vehicle 01"]);
 
     for (const s of SEED_SESSIONS) {
       await client.query(
@@ -104,6 +105,19 @@ export async function seed(client: Client, log: (msg: string) => void = console.
       });
     }
 
+    await insertSeedWorkOrders(client);
+
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  }
+  log(`seeded synthetic demo data: ${SEED_ISSUES.length} issues, ${SEED_OBSERVATIONS.length} observations, ${SEED_WORK_ORDERS.length} work orders`);
+  return true;
+}
+
+/** Inserts the seed work orders and their audit events. Caller owns the transaction. */
+export async function insertSeedWorkOrders(client: Client): Promise<void> {
     for (const w of SEED_WORK_ORDERS) {
       const request = { riskAssessmentId: w.riskAssessmentId, assignedTeam: w.assignedTeam, notes: w.notes };
       const updatedAt = w.resolvedAt ?? w.startedAt ?? w.createdAt;
@@ -126,12 +140,51 @@ export async function seed(client: Client, log: (msg: string) => void = console.
         );
       }
     }
+}
 
-    await client.query("COMMIT");
+export type DemoResetScope = "WORK_ORDERS" | "ALL";
+export const DEMO_RESET_CONFIRMATION = "RESET_DEMO_DATA";
+
+/**
+ * Returns the demo to a known state for rehearsal. Destructive; demo data only.
+ * - WORK_ORDERS: delete every work order, audit event, and resolution image record; reopen all issues;
+ *   re-insert the seed work orders. Captures, detections, issues, and scores are kept, so replayed
+ *   dashcam footage does not need re-processing.
+ * - ALL: delete all sessions, observations, detections, issues, scores, and work orders, then
+ *   re-seed. Devices, vehicles, and area boundaries are kept. S3 objects are not deleted
+ *   (they expire by lifecycle); re-running the dashcam replay re-uploads and re-processes.
+ */
+export async function resetDemo(client: Client, scope: DemoResetScope, log: (msg: string) => void = console.log): Promise<{ scope: DemoResetScope; workOrdersDeleted: number; issuesReopened: number }> {
+  await client.query("BEGIN");
+  try {
+    await client.query("DELETE FROM resolution_evidence");
+    await client.query("DELETE FROM work_order_events");
+    const wo = await client.query("DELETE FROM work_orders");
+    let reopened = 0;
+    if (scope === "ALL") {
+      await client.query("DELETE FROM risk_score_components");
+      await client.query("DELETE FROM risk_assessments");
+      await client.query("DELETE FROM detections");
+      await client.query("DELETE FROM observations");
+      await client.query("DELETE FROM issues");
+      await client.query("DELETE FROM inspection_sessions");
+      await client.query("COMMIT");
+      await seed(client, log);
+    } else {
+      const r = await client.query("UPDATE issues SET status = 'OPEN', updated_at = now() WHERE status <> 'OPEN'");
+      reopened = r.rowCount ?? 0;
+      const seeded = await client.query("SELECT count(*)::int AS n FROM issues WHERE id = ANY($1::uuid[])", [SEED_ISSUES.map((i) => i.id)]);
+      if (seeded.rows[0].n === SEED_ISSUES.length) {
+        await insertSeedWorkOrders(client);
+        const resolved = SEED_ISSUES.filter((i) => i.status === "RESOLVED").map((i) => i.id);
+        await client.query("UPDATE issues SET status = 'RESOLVED' WHERE id = ANY($1::uuid[])", [resolved]);
+      }
+      await client.query("COMMIT");
+    }
+    log(`demo reset (${scope}): deleted ${wo.rowCount ?? 0} work orders`);
+    return { scope, workOrdersDeleted: wo.rowCount ?? 0, issuesReopened: reopened };
   } catch (err) {
-    await client.query("ROLLBACK");
+    await client.query("ROLLBACK").catch(() => undefined);
     throw err;
   }
-  log(`seeded synthetic demo data: ${SEED_ISSUES.length} issues, ${SEED_OBSERVATIONS.length} observations, ${SEED_WORK_ORDERS.length} work orders`);
-  return true;
 }

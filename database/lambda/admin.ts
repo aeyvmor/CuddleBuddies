@@ -2,13 +2,14 @@ import ncrCities from "../seeds/ncr-cities.json";
 import { loadAreas, type AreaInput } from "../src/areas";
 import { createPoolFromEnv } from "../src/pool";
 import { migrate } from "../scripts/migrate-lib";
-import { seed } from "../scripts/seed-lib";
+import { DEMO_RESET_CONFIRMATION, resetDemo, seed, type DemoResetScope } from "../scripts/seed-lib";
 
 /**
  * Admin Lambda (inside the VPC). The private database is unreachable from laptops, so schema and
  * demo-data operations run here, invoked explicitly by the AWS owner:
  *   aws lambda invoke --function-name <AdminFunctionName> --payload fileb://payload.json out.json
- * Destructive actions (reset/drop of operational data) are deliberately not offered.
+ * `reset-demo` is the only destructive action: demo rehearsal only, and it requires the exact
+ * confirmation phrase so it cannot be triggered by a typo.
  */
 type AdminEvent =
   | { action: "migrate" }
@@ -16,6 +17,7 @@ type AdminEvent =
   | { action: "status" }
   | { action: "register-device" | "register-vehicle"; label: string; isSynthetic?: boolean }
   | { action: "load-ncr-cities" }
+  | { action: "reset-demo"; scope?: DemoResetScope; confirm: string }
   | { action: "load-areas"; source: string; areas: AreaInput[] };
 
 const LABEL = /^[A-Za-z0-9 ()._-]{1,120}$/;
@@ -54,6 +56,12 @@ export async function handler(event: AdminEvent) {
         );
         return { id: rows[0].id, label: event.label, isSynthetic };
       }
+      case "reset-demo": {
+        if (event.confirm !== DEMO_RESET_CONFIRMATION) throw new Error(`reset-demo requires "confirm": "${DEMO_RESET_CONFIRMATION}"`);
+        const scope = event.scope ?? "WORK_ORDERS";
+        if (scope !== "WORK_ORDERS" && scope !== "ALL") throw new Error("scope must be WORK_ORDERS or ALL");
+        return { ...(await resetDemo(client, scope, (m) => log.push(m))), log, next: "invoke the analytics export, then refresh QuickSight" };
+      }
       case "load-ncr-cities": {
         // Bundled, attributed OSM boundaries for the 17 NCR cities/municipality.
         await client.query("BEGIN");
@@ -78,7 +86,7 @@ export async function handler(event: AdminEvent) {
         }
       }
       default:
-        throw new Error("action must be one of: migrate, seed, status, register-device, register-vehicle, load-ncr-cities, load-areas");
+        throw new Error("action must be one of: migrate, seed, status, register-device, register-vehicle, load-ncr-cities, load-areas, reset-demo");
     }
   } finally {
     client.release();

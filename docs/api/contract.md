@@ -2,7 +2,7 @@
 
 This is a boundary checklist, not a frozen OpenAPI document. Agree exact field names, auth, response/error format, and versioning with mobile/web/backend owners before parallel implementation. Keep the source machine-readable once the stack is selected.
 
-The backend owner's concrete draft is [contract v0 proposal](contract-v0-proposal.md) (pending team confirmation), with Zod schemas in `packages/contracts/`.
+The backend owner's concrete draft is [contract v0 proposal](contract-v0-proposal.md) (pending team confirmation), with Zod schemas in `packages/contracts/`. **To connect the apps, start with the [integration guide](integration-guide.md)** and the typed client in `packages/api-client/`.
 
 ## Suggested operations
 

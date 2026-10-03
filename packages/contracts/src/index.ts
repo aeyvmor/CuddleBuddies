@@ -10,3 +10,4 @@ export * from "./auth";
 export * from "./session";
 export * from "./processing";
 export * from "./issue-list";
+export * from "./resolution";

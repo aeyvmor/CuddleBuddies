@@ -2,6 +2,8 @@ import {
   AnalyticsSummaryResponse,
   CreateWorkOrderRequest,
   CreateWorkOrderResponse,
+  CreateResolutionEvidenceRequest,
+  ResolutionEvidenceResponse,
   CreateSessionRequest,
   CreateUploadUrlRequest,
   EndSessionRequest,
@@ -28,6 +30,7 @@ import { MAX_BODY_BYTES, type ApiRequest, type ApiResponse } from "./http";
 import { getIssueDetail } from "./repositories/issues";
 import { analyticsSummary, listIssues } from "./repositories/issue-list";
 import { createSession, endSession } from "./repositories/sessions";
+import { createResolutionEvidence } from "./repositories/resolution";
 import { createUploadUrl } from "./repositories/uploads";
 import { createWorkOrder, updateWorkOrder } from "./repositories/work-orders";
 
@@ -154,6 +157,20 @@ export function createApp(deps: AppDeps): (req: ApiRequest) => Promise<ApiRespon
           updateWorkOrder(c, { workOrderId, request, actorSubject: principal.subject }),
         );
         return { status: 200, body: { workOrder }, schema: UpdateWorkOrderResponse };
+      },
+    },
+    {
+      method: "POST",
+      name: "POST /work-orders/{id}/resolution-evidence",
+      pattern: /^\/work-orders\/([^/]+)\/resolution-evidence$/,
+      role: "OFFICER",
+      handle: async ({ req, params, principal }) => {
+        const workOrderId = parseId(params[0]!, "work order id");
+        const request = parseBody(req, CreateResolutionEvidenceRequest);
+        const body = await withTransaction(deps.pool, (c) =>
+          createResolutionEvidence(c, { workOrderId, request, actorSubject: principal.subject, signer: deps.uploadSigner ?? null }),
+        );
+        return { status: body.created ? 201 : 200, body, schema: ResolutionEvidenceResponse };
       },
     },
     {

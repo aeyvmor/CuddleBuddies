@@ -59,5 +59,13 @@ export const IssueDetailResponse = z.strictObject({
   observationsTruncated: z.boolean(),
   /** Newest first. */
   workOrders: z.array(WorkOrder),
+  /**
+   * "After" images for this issue's work orders, newest first (requirement 12). Optional for
+   * backward compatibility with clients built before it existed.
+   */
+  resolutionEvidence: z
+    .array(z.strictObject({ id: Uuid, workOrderId: Uuid, note: z.string().nullable(), createdAt: UtcInstant, evidence: EvidenceAccess }))
+    .max(50)
+    .optional(),
 });
 export type IssueDetailResponse = z.infer<typeof IssueDetailResponse>;

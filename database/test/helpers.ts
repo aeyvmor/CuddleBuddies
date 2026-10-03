@@ -8,6 +8,7 @@ export function testDatabaseUrl(): string {
 }
 
 const TABLES = [
+  "resolution_evidence",
   "work_order_events",
   "work_orders",
   "risk_score_components",

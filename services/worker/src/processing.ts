@@ -1,4 +1,4 @@
-import { Detection, type BeginResult, type CompleteResult, type PersistRequest } from "@astig/contracts";
+import { Detection, type BeginResult, type CompleteResult, type MarkResolutionResult, type PersistRequest } from "@astig/contracts";
 import { insertRiskAssessment, type Queryable } from "@astig/database";
 import {
   ISSUE_MATCH_RADIUS_M,
@@ -26,6 +26,18 @@ interface ObsRow {
 
 const lockObservation = async (db: Queryable, objectKey: string) =>
   (await db.query<ObsRow>("SELECT * FROM observations WHERE image_object_key = $1 FOR UPDATE", [objectKey])).rows[0];
+
+/** Records that a resolution image landed in S3 (idempotent). Must run inside a transaction. */
+export async function markResolutionUploaded(db: Queryable, objectKey: string, now = new Date()): Promise<MarkResolutionResult> {
+  const r = await db.query<{ uploaded_at: Date | null }>(
+    "SELECT uploaded_at FROM resolution_evidence WHERE image_object_key = $1 FOR UPDATE",
+    [objectKey],
+  );
+  if (!r.rows[0]) return { marked: false, reason: "UNKNOWN_OBJECT" };
+  if (r.rows[0].uploaded_at) return { marked: false, reason: "ALREADY_MARKED" };
+  await db.query("UPDATE resolution_evidence SET uploaded_at = $2 WHERE image_object_key = $1", [objectKey, now]);
+  return { marked: true };
+}
 
 /**
  * Called when an object lands in S3. Records the upload and claims the observation for

@@ -9,7 +9,7 @@
 | API base URL | `https://2jpf5wobhl.execute-api.ap-southeast-1.amazonaws.com` |
 | Cognito user pool ID | `ap-southeast-1_uYQoBKBkj` |
 | Cognito app client ID (public, no secret; SRP or USER_PASSWORD auth) | `7dgk8feqomk5d5q0vr81fp7m86` |
-| Allowed browser origin (CORS) | `http://localhost:5173` (add more with `-c apiCorsOrigins=a,b` and redeploy) |
+| Allowed browser origins (CORS, API + S3 PUT) | `http://localhost:5173`, `http://localhost:4173`. Set with `-c webOrigins=https://<app>.vercel.app,http://localhost:5173` and redeploy `--all` |
 
 Send `Authorization: Bearer <Cognito access or ID token>`. Roles come from Cognito groups `OFFICER` and `OPERATOR`. Self sign-up is off, so the account owner creates users.
 
@@ -87,8 +87,8 @@ aws cognito-idp admin-add-user-to-group --user-pool-id ap-southeast-1_uYQoBKBkj 
 ## Known limitations
 
 - The Lambdas use the RDS master user. A least-privilege app role is a follow-up.
-- New accounts have a Lambda concurrency limit of 10. Request an increase through Service Quotas if uploads queue up.
-- There's no CloudWatch alarm yet. Processing failures are visible as `FAILED` observations and in the `Ingest` logs.
+- **Lambda concurrency limit: 10** (new-account limit; the standard default is 1000, and Service Quotas only accepts requests above 1000). AWS usually raises it automatically as the account is used. If throttling alarms fire, open an AWS Support case under Service limit increase for Lambda concurrent executions (free on Basic support).
+- **Alarms:** 8 CloudWatch alarms go to an SNS topic: processing failures (3 or more in 5 min), errors and throttles for Api, Ingest and Persist, and API 5xx. Deploy with `-c alarmEmail=<email>` and **confirm the subscription email** AWS sends.
 - Vision provider: `VISION_PROVIDER=gemini` (model `gemini-3.1-flash-lite`, override with `-c geminiModel=...`). Until the `VisionProviderApiKey` secret holds a real key, every image fails with `PROVIDER_NOT_CONFIGURED`. See `docs/operations/dashcam-demo-data.md` step 1.
 
 ## Teardown (after judging)

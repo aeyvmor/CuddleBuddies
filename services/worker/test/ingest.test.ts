@@ -1,4 +1,4 @@
-import type { BeginResult, CompleteResult, PersistRequest } from "@astig/contracts";
+import type { BeginResult, CompleteResult, MarkResolutionResult, PersistRequest } from "@astig/contracts";
 import { describe, expect, it } from "vitest";
 import { createIngestHandler, decodeS3Key, NotConfiguredProvider, ProviderError, type VisionProvider } from "../src";
 
@@ -27,9 +27,9 @@ function harness(provider: VisionProvider, begin: BeginResult = { proceed: true,
       reads++;
       return { bytes: new Uint8Array([0xff, 0xd8]), contentType: "image/jpeg" };
     },
-    persist: async <R extends BeginResult | CompleteResult>(req: PersistRequest) => {
+    persist: async <R extends BeginResult | CompleteResult | MarkResolutionResult>(req: PersistRequest) => {
       calls.push(req);
-      return (req.action === "BEGIN" ? begin : { applied: true, observationId: "o1", status: "FAILED", issueId: null }) as R;
+      return (req.action === "BEGIN" ? begin : req.action === "MARK_RESOLUTION_UPLOADED" ? { marked: true } : { applied: true, observationId: "o1", status: "FAILED", issueId: null }) as R;
     },
     log: () => undefined,
   });
@@ -95,6 +95,15 @@ describe("ingest handler", () => {
       log: () => undefined,
     });
     await expect(handle(event())).rejects.toThrow("persist unavailable");
+  });
+
+  it("records resolution ('after') images without running inference", async () => {
+    let analyzed = 0;
+    const h = harness(fake(async () => { analyzed++; return validDetection; }));
+    await h.handle(event("work-orders/5e3d0008-0000-4000-8000-000000000001/resolution/0b6f1d4e-6a3c-4c1e-9d2a-7f00000000a1.jpg"));
+    expect(h.calls).toEqual([{ schemaVersion: "processing.v0", action: "MARK_RESOLUTION_UPLOADED", objectKey: "work-orders/5e3d0008-0000-4000-8000-000000000001/resolution/0b6f1d4e-6a3c-4c1e-9d2a-7f00000000a1.jpg" }]);
+    expect(analyzed).toBe(0);
+    expect(h.reads()).toBe(0);
   });
 
   it("decodes S3 event keys", () => {

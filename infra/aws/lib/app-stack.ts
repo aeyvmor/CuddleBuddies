@@ -6,6 +6,10 @@ import { HttpJwtAuthorizer } from "aws-cdk-lib/aws-apigatewayv2-authorizers";
 import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
 import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
+import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
+import * as cwActions from "aws-cdk-lib/aws-cloudwatch-actions";
+import * as sns from "aws-cdk-lib/aws-sns";
+import * as subs from "aws-cdk-lib/aws-sns-subscriptions";
 import * as events from "aws-cdk-lib/aws-events";
 import * as targets from "aws-cdk-lib/aws-events-targets";
 import * as lambda from "aws-cdk-lib/aws-lambda";
@@ -26,6 +30,8 @@ export interface AppStackProps extends StackProps {
   evidenceBucketArn: string;
   /** Browser origins allowed to call the API (web dashboard). */
   apiCorsOrigins: string[];
+  /** Email for alarm notifications (passed at deploy time; not committed). */
+  alarmEmail?: string;
 }
 
 /**
@@ -171,6 +177,8 @@ export class AppStack extends Stack {
     // Presigned URLs act with the signer's permissions: PUT/GET on observation keys only.
     bucket.grantPut(apiFn, "sessions/*");
     bucket.grantRead(apiFn, "sessions/*");
+    bucket.grantPut(apiFn, "work-orders/*");
+    bucket.grantRead(apiFn, "work-orders/*");
 
     const persistFn = vpcFn("PersistFunction", "services/worker/src/lambda-persist.ts", { timeout: Duration.seconds(20) });
 
@@ -211,6 +219,11 @@ export class AppStack extends Stack {
     visionSecret.grantRead(ingestFn);
     bucket.addEventNotification(s3.EventType.OBJECT_CREATED, new s3n.LambdaDestination(ingestFn), {
       prefix: "sessions/",
+      suffix: ".jpg",
+    });
+    // Resolution ("after") images: ingest only records the upload (no inference, no object read).
+    bucket.addEventNotification(s3.EventType.OBJECT_CREATED, new s3n.LambdaDestination(ingestFn), {
+      prefix: "work-orders/",
       suffix: ".jpg",
     });
 
@@ -267,6 +280,48 @@ export class AppStack extends Stack {
       integration: new HttpLambdaIntegration("PreflightIntegration", apiFn),
       authorizer: new HttpNoneAuthorizer(),
     });
+
+    // ---------------- Alarms (email via SNS; ~US$0.10/alarm/month) ----------------
+    const alarmTopic = new sns.Topic(this, "AlarmTopic", { displayName: "ASTIG alarms" });
+    if (props.alarmEmail) alarmTopic.addSubscription(new subs.EmailSubscription(props.alarmEmail));
+    const notify = (alarm: cloudwatch.Alarm) => alarm.addAlarmAction(new cwActions.SnsAction(alarmTopic));
+    const fiveMin = Duration.minutes(5);
+
+    // Explicit processing failures (provider errors, invalid model output) from the ingest logs.
+    const failureMetric = new logs.MetricFilter(this, "ProcessingFailureFilter", {
+      logGroup: ingestFn.logGroup,
+      metricNamespace: "ASTIG",
+      metricName: "ProcessingFailures",
+      filterPattern: logs.FilterPattern.stringValue("$.msg", "=", "processing failed"),
+      metricValue: "1",
+      defaultValue: 0,
+    }).metric({ statistic: "Sum", period: fiveMin });
+    notify(new cloudwatch.Alarm(this, "ProcessingFailuresAlarm", {
+      alarmDescription: "3+ image processing failures in 5 minutes (check the Ingest logs: provider key, quota, or model output).",
+      metric: failureMetric, threshold: 3, evaluationPeriods: 1,
+      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+    }));
+    for (const [id, f] of [["Api", apiFn], ["Ingest", ingestFn], ["Persist", persistFn]] as const) {
+      notify(new cloudwatch.Alarm(this, `${id}ErrorsAlarm`, {
+        alarmDescription: `${id} Lambda errors (unhandled exceptions or timeouts).`,
+        metric: f.metricErrors({ period: fiveMin, statistic: "Sum" }), threshold: 1, evaluationPeriods: 1,
+        comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      }));
+      notify(new cloudwatch.Alarm(this, `${id}ThrottlesAlarm`, {
+        alarmDescription: `${id} Lambda throttled (account concurrency limit reached).`,
+        metric: f.metricThrottles({ period: fiveMin, statistic: "Sum" }), threshold: 1, evaluationPeriods: 1,
+        comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+        treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      }));
+    }
+    notify(new cloudwatch.Alarm(this, "Api5xxAlarm", {
+      alarmDescription: "HTTP API returned 5xx responses.",
+      metric: httpApi.metricServerError({ period: fiveMin, statistic: "Sum" }), threshold: 3, evaluationPeriods: 1,
+      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+    }));
 
     Tags.of(this).add("project", "astig");
     Tags.of(this).add("stage", props.stage);

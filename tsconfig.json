@@ -21,6 +21,8 @@
     "packages/contracts/src",
     "packages/contracts/test",
     "packages/domain/src",
+    "packages/api-client/src",
+    "packages/api-client/test",
     "packages/domain/test",
     "database/src",
     "database/scripts",
