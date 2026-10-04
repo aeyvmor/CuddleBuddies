@@ -2,6 +2,12 @@
 
 **Automated Street & Infrastructure Geospatial Intelligence**
 
+**https://astig-xi.vercel.app/** 
+
+**Username**: demo-officer
+
+**Password**: Astig-PcaeuxMfnNVeUU4PBE-9
+
 ASTIG turns routine vehicle trips into geolocated street-infrastructure observations. The hackathon MVP captures sampled street images, extracts structured evidence with vision AI, maps and prioritizes issues, and lets an authorized officer create and track a work order.
 
 ## MVP loop
