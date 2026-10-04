@@ -228,8 +228,8 @@ export function App({ api, role, account, dataSource }: Props) {
     );
   }
 
-  async function advanceWorkOrder(id: string, status: WorkOrderStatus) {
-    await write(() => api.updateWorkOrder(id, { status }));
+  async function advanceWorkOrder(id: string, status: WorkOrderStatus, details?: { notes?: string; assignedTeam?: string }) {
+    await write(() => api.updateWorkOrder(id, { status, ...details }));
   }
 
   async function addPhoto(workOrderId: string, input: ResolutionPhotoInput) {

@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { App } from "./App";
 import { createMockApi } from "./api/mockClient";
 import type { Role } from "./api/types";
+import { completeFieldReport } from "./test/fieldReport";
 
 function Harness({ initialRole = "OFFICER" as Role }) {
   const [role, setRole] = useState<Role>(initialRole);
@@ -74,10 +75,13 @@ describe("operations dashboard", () => {
     expect(wo).toHaveTextContent("Assigned to Demo Team 3");
 
     await user.click(within(wo).getByRole("button", { name: "Mark In progress" }));
+    await completeFieldReport(user, "START");
     await within(wo).findByRole("button", { name: "Mark Resolved" });
+    expect(wo).toHaveTextContent(/Field inspection .* UTC\] Inspected on site/);
     expect(current()).toHaveTextContent("In progress");
 
     await user.click(within(wo).getByRole("button", { name: "Mark Resolved" }));
+    await completeFieldReport(user, "RESOLVE");
     expect(await within(wo).findByText("This work order is resolved.")).toBeInTheDocument();
     expect(current()).toHaveTextContent("Resolved");
     expect(within(wo).queryByRole("button", { name: /Mark/ })).not.toBeInTheDocument();

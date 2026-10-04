@@ -1,0 +1,105 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000; /* above the Leaflet map controls (1000) */
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(15 23 42 / 0.55);
+}
+
+.dialog {
+  width: min(100%, 34rem);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 0.3);
+}
+
+.form {
+  display: grid;
+  gap: 0.875rem;
+  padding: 1.5rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--color-text);
+}
+
+.intro {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.field {
+  display: grid;
+  gap: 0.375rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.field input:not([type="file"]),
+.field textarea {
+  font: inherit;
+  font-weight: 400;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-control-border);
+  border-radius: 0.5rem;
+}
+
+.check {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.error {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  color: var(--color-danger);
+  background: var(--color-danger-tint);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.cancel,
+.submit {
+  font: inherit;
+  font-weight: 700;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.cancel {
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.submit {
+  border: 0;
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dialog :focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}

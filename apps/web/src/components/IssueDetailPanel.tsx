@@ -24,7 +24,7 @@ interface Props {
   position: QueuePosition;
   onClose: () => void;
   onCreateWorkOrder: (input: CreateInput) => Promise<void>;
-  onAdvanceWorkOrder: (workOrderId: string, status: WorkOrderStatus) => Promise<void>;
+  onAdvanceWorkOrder: (workOrderId: string, status: WorkOrderStatus, details?: { notes?: string; assignedTeam?: string }) => Promise<void>;
   onAddPhoto: (workOrderId: string, input: ResolutionPhotoInput) => Promise<void>;
   /** One automatic refetch for expired image links. */
   imageRetry: ImageRetry;

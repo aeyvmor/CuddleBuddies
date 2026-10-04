@@ -7,6 +7,7 @@ import type { ApiClient } from "./api/client";
 import { createMockApi } from "./api/mockClient";
 import { ApiError, type IssueDetailResponse, type Role } from "./api/types";
 import { createSyntheticIssues, SYNTHETIC_ISSUE_IDS } from "./data/syntheticData";
+import { completeFieldReport } from "./test/fieldReport";
 
 function Harness({ wrap, seed }: { wrap?: (api: ApiClient) => ApiClient; seed?: IssueDetailResponse[] }) {
   const [role, setRole] = useState<Role>("OFFICER");
@@ -156,6 +157,7 @@ describe("analytics summary", () => {
     await within(section).findByText("Issues");
     const detail = await open(user, /Map marker: Standing water/);
     await user.click(within(detail).getByRole("button", { name: "Mark Resolved" }));
+    await completeFieldReport(user, "RESOLVE");
     await waitFor(() => expect(within(section).getByText("Work orders").closest("div")).toHaveTextContent("0 open · 0 in progress · 2 resolved"));
   });
 

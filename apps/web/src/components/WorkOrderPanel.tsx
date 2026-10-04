@@ -9,7 +9,14 @@ import { formatUtc, label } from "../domain/labels";
 import { EvidenceImage, type ImageRetry } from "./EvidenceImage";
 import { evidenceImageClasses } from "./EvidenceList";
 import { Icon } from "./Icon";
+import { FieldReportDialog, type FieldReport, type FieldReportKind } from "./FieldReportDialog";
 import styles from "./WorkOrderPanel.module.css";
+
+/** Notes are capped at 2000 characters: keep the newest entries when appending. */
+export function appendNote(existing: string | null, entry: string): string {
+  const combined = existing ? `${existing}\n\n${entry}` : entry;
+  return combined.length <= 2000 ? combined : combined.slice(combined.length - 2000);
+}
 
 export interface CreateInput {
   idempotencyKey: string;
@@ -27,7 +34,7 @@ interface Props {
   /** "After" photos for this issue's work orders (optional in the contract). */
   resolutionEvidence: ResolutionEvidenceItem[];
   onCreate: (input: CreateInput) => Promise<void>;
-  onAdvance: (workOrderId: string, status: WorkOrderStatus) => Promise<void>;
+  onAdvance: (workOrderId: string, status: WorkOrderStatus, details?: { notes?: string; assignedTeam?: string }) => Promise<void>;
   onAddPhoto: (workOrderId: string, input: ResolutionPhotoInput) => Promise<void>;
   retry: ImageRetry;
   onReload: () => void;
@@ -219,6 +226,55 @@ export function WorkOrderPanel(props: Props) {
   const readOnly = !isOfficer;
   const photos = current ? props.resolutionEvidence.filter((p) => p.workOrderId === current.id) : [];
 
+  const [report, setReport] = useState<FieldReportKind | null>(null);
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
+  const advanceRef = useRef<HTMLButtonElement>(null);
+
+  /**
+   * Field report flow. START: save findings + crew, move to IN_PROGRESS, then attach site photos
+   * (photos are accepted once IN_PROGRESS). RESOLVE: attach after photos first, then save the
+   * close-out note and move to RESOLVED. Notes are appended with a UTC stamp, never overwritten.
+   */
+  async function submitReport(wo: WorkOrder, kind: FieldReportKind, r: FieldReport) {
+    if (reportBusy) return;
+    setReportBusy(true);
+    setReportError(null);
+    const stamp = new Date().toISOString().replace("T", " ").slice(0, 16) + " UTC";
+    const entry = `[${kind === "START" ? "Field inspection" : "Repair completed"} ${stamp}] ${r.text}`;
+    const notes = appendNote(wo.notes, entry);
+    const upload = (photoNote: string) => async () => {
+      for (const file of r.files) await props.onAddPhoto(wo.id, { clientEvidenceId: newId(), file, note: photoNote });
+    };
+    let statusSaved = false;
+    try {
+      if (kind === "START") {
+        await onAdvance(wo.id, "IN_PROGRESS", { notes, ...(r.team && r.team !== wo.assignedTeam ? { assignedTeam: r.team } : {}) });
+        statusSaved = true;
+        await upload("Site inspection photo")();
+      } else {
+        await upload("After repair photo")();
+        await onAdvance(wo.id, "RESOLVED", { notes });
+        statusSaved = true;
+      }
+      setReport(null);
+      setAnnouncement(`Work order status changed to ${label(kind === "START" ? "IN_PROGRESS" : "RESOLVED")}. Field report saved${r.files.length ? ` with ${r.files.length} photo${r.files.length === 1 ? "" : "s"}` : ""}.`);
+      if (kind === "START") advanceRef.current?.focus();
+      else headingRef.current?.focus();
+    } catch (e) {
+      if (statusSaved) {
+        // Status and notes are saved; only a photo failed. Close and say so (photos can be re-added below).
+        setReport(null);
+        setError({ text: `Status saved, but a photo upload failed: ${errorText(e, "upload error")} Add it again under "After photo".`, requestId: e instanceof ApiError ? e.requestId : null });
+        headingRef.current?.focus();
+      } else {
+        setReportError(errorText(e, "Could not save the field report. Try again."));
+      }
+    } finally {
+      setReportBusy(false);
+    }
+  }
+
   return (
     <section aria-labelledby="work-order-heading" className={styles.section}>
       <h3 id="work-order-heading" ref={headingRef} tabIndex={-1} className={styles.heading}>
@@ -247,19 +303,32 @@ export function WorkOrderPanel(props: Props) {
           {current.notes && <p className={styles.muted}>{current.notes}</p>}
           {active && next && (
             <button
+              ref={advanceRef}
               type="button"
               className={styles.primary}
               disabled={readOnly}
               aria-disabled={busy || undefined}
-              onClick={() =>
-                run(() => onAdvance(active.id, next), {
-                  announce: `Work order status changed to ${label(next)}.`,
-                  moveFocus: next === "RESOLVED",
-                })
-              }
+              onClick={() => {
+                setReportError(null);
+                setReport(next === "IN_PROGRESS" ? "START" : "RESOLVE");
+              }}
             >
               Mark {label(next)}
             </button>
+          )}
+          {active && report && (
+            <FieldReportDialog
+              kind={report}
+              defaultTeam={active.assignedTeam ?? ""}
+              photoSlots={Math.max(0, RESOLUTION_MAX_PER_WORK_ORDER - photos.length)}
+              busy={reportBusy}
+              error={reportError}
+              onCancel={() => {
+                setReport(null);
+                advanceRef.current?.focus();
+              }}
+              onSubmit={(r) => void submitReport(active, report, r)}
+            />
           )}
           {!active && <p className={styles.muted}>This work order is resolved.</p>}
           {current.status !== "OPEN" && (

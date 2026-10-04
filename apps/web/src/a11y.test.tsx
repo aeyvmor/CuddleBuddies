@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { App } from "./App";
 import { createMockApi } from "./api/mockClient";
 import type { Role } from "./api/types";
+import { completeFieldReport } from "./test/fieldReport";
 
 function Harness({ initialRole }: { initialRole: Role }) {
   const [role, setRole] = useState<Role>(initialRole);
@@ -59,12 +60,17 @@ describe("keyboard path: review an issue, create a work order, resolve it", () =
     // 3. Advance to IN_PROGRESS: the same button stays focused with its next label.
     await tabTo(user, () => within(wo).getByRole("button", { name: "Mark In progress" }));
     await user.keyboard("{Enter}");
+    // The field-report dialog opens with focus in its first field; after saving, focus returns to the same button.
+    const dialog = await screen.findByRole("dialog", { name: /field inspection/ });
+    expect(document.activeElement).toBe(within(dialog).getByLabelText("Crew / team on site"));
+    await completeFieldReport(user, "START");
     const resolveButton = await within(wo).findByRole("button", { name: "Mark Resolved" });
     expect(document.activeElement).toBe(resolveButton);
     await waitFor(() => expect(status()).toContain("Work order status changed to In progress."));
 
     // 4. Resolve: the button disappears, so focus returns to the heading.
     await user.keyboard("{Enter}");
+    await completeFieldReport(user, "RESOLVE");
     await waitFor(() => expect(document.activeElement).toBe(heading));
     await waitFor(() => expect(status()).toContain("Work order status changed to Resolved."));
     expect(within(wo).getByRole("listitem", { current: "step" })).toHaveTextContent("Resolved");
