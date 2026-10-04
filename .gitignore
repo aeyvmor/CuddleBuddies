@@ -40,3 +40,8 @@ tools/dashcam-replay/work/
 *.MP4
 *.MOV
 *.gpx
+
+# Demo video assets (derived from footage/screens) and renders
+video/public/
+video/out/
+video/node_modules/

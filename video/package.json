@@ -1,0 +1,21 @@
+{
+  "name": "astig-demo-video",
+  "version": "0.0.0",
+  "private": true,
+  "description": "45-second ASTIG demo video (Remotion). Standalone project, not part of the npm workspaces.",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts AstigDemo out/astig-demo.mp4 --codec h264 --crf 18",
+    "still": "remotion still src/index.ts AstigDemo out/still.png"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.532",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "remotion": "4.0.532"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "typescript": "5.9.3"
+  }
+}
