@@ -15,6 +15,8 @@ import { theme } from "../theme";
 import { Button, Card, Chip, Muted, Stat } from "../ui";
 import { MAX_FIX_AGE_MS } from "../trigger";
 import { useLiveCapture } from "../useLiveCapture";
+import type { UploadStatus } from "../useUploader";
+import { UploadLine } from "./UploadLine";
 import { ArView } from "./ArView";
 
 const { color, space, radius, size, font } = theme;
@@ -33,6 +35,8 @@ interface Props {
   onStop: () => void;
   /** Called once stopping and no capture is in flight. */
   onStopped: () => void;
+  upload: UploadStatus;
+  signedIn: boolean;
   topInset: number;
   bottomInset: number;
 }
@@ -145,7 +149,7 @@ export function ActiveScreen(props: Props) {
           Last failure {clockSeconds(props.latestFailure.attemptedAt)}: {FAILURE_TEXT[props.latestFailure.reason]}
         </Text>
       )}
-      <Muted>Upload not connected in this build.</Muted>
+      <UploadLine upload={props.upload} signedIn={props.signedIn} uploaded={counts.uploaded} waiting={counts.waitingUpload} />
     </Card>
   );
 

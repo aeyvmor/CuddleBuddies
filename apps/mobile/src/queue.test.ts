@@ -28,8 +28,8 @@ test("counts captures, failures and uploads waiting, per session", () => {
   q = addEntry(q, failed("s1"));
   q = addEntry(q, captured("s1", 1));
   q = addEntry(q, captured("s2", 0));
-  assert.deepEqual(queueCounts(q, "s1"), { captured: 2, failed: 1, waitingUpload: 2 });
-  assert.deepEqual(queueCounts(q), { captured: 3, failed: 1, waitingUpload: 3 });
+  assert.deepEqual(queueCounts(q, "s1"), { captured: 2, failed: 1, waitingUpload: 2, uploaded: 0 });
+  assert.deepEqual(queueCounts(q), { captured: 3, failed: 1, waitingUpload: 3, uploaded: 0 });
 });
 
 test("a failure stays a failure and is never offered for upload", () => {

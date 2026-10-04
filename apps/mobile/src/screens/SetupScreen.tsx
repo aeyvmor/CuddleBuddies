@@ -10,6 +10,9 @@ import { DEFAULT_INTERVAL_M, MAX_LABEL_LENGTH, stepInterval, validateSetup, type
 import { SOURCE_ORDER, SOURCES, type DistanceSource } from "../sources";
 import { theme } from "../theme";
 import { Button, Card, Chip, Muted, SectionTitle } from "../ui";
+import type { Account } from "../useAccount";
+import type { UploadStatus } from "../useUploader";
+import { AccountCard, type UploadTotals } from "./AccountCard";
 
 const { color, space, radius, size, font } = theme;
 
@@ -18,6 +21,9 @@ export interface EndedSummary {
   captured: number;
   failed: number;
   waitingUpload: number;
+  uploaded: number;
+  /** False for sessions from builds before the uploader (kept on the phone only). */
+  uploadable: boolean;
   gaps: number;
 }
 
@@ -35,6 +41,9 @@ interface Props {
   ended: EndedSummary | null;
   /** Saved data that could not be read at launch; shown, never hidden. */
   storageWarning: string | null;
+  account: Account;
+  upload: UploadStatus;
+  uploadTotals: UploadTotals;
   topInset: number;
   bottomInset: number;
 }
@@ -148,11 +157,15 @@ export function SetupScreen(props: Props) {
             {props.ended.elapsed} · {props.ended.captured} captured · {props.ended.failed} failed
           </Text>
           <Muted>
-            {props.ended.waitingUpload} waiting to upload. Upload is not connected in this build, so they stay on this phone.
+            {props.ended.uploadable
+              ? `${props.ended.uploaded} uploaded · ${props.ended.waitingUpload} waiting to upload.`
+              : "Kept on this phone only (recorded before uploads were available)."}
             {props.ended.gaps > 0 ? ` Recording paused ${props.ended.gaps} time(s) while the app was not on screen.` : ""}
           </Muted>
         </Card>
       )}
+
+      <AccountCard account={props.account} upload={props.upload} totals={props.uploadTotals} />
 
       <LabelField label="Device" value={deviceLabel} onChange={setDeviceLabel} recent={props.recentDevices} error={errors.deviceLabel} hint="For example: Phone A" />
       <LabelField label="Vehicle" value={vehicleLabel} onChange={setVehicleLabel} recent={props.recentVehicles} error={errors.vehicleLabel} hint="For example: Jeepney 12" />
@@ -231,11 +244,6 @@ export function SetupScreen(props: Props) {
         <SectionTitle>Permissions</SectionTitle>
         <PermissionRow kind="CAMERA" p={props.camera} onRequest={() => props.onRequestPermission("CAMERA")} onSettings={props.onOpenSettings} />
         <PermissionRow kind="LOCATION" p={props.location} onRequest={() => props.onRequestPermission("LOCATION")} onSettings={props.onOpenSettings} />
-      </Card>
-
-      <Card tone="warning">
-        <Chip label="Upload not connected" tone="warning" />
-        <Muted style={styles.warningText}>This build keeps every capture on this phone. Nothing is sent to ASTIG yet.</Muted>
       </Card>
 
       {startError && (

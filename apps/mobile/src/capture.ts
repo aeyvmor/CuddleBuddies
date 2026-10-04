@@ -1,9 +1,10 @@
 /**
- * SPIKE: capture metadata in the shape of the draft contract's ObservationCaptureRequest
- * (packages/contracts/src/observation.ts, observation-capture.v0). The contract is NOT
- * imported; field names and enum values are copied so the spike shows what a real
- * capture would send. Pure functions, tested without a device.
+ * Capture metadata in the shape of the contract's ObservationCaptureRequest
+ * (packages/contracts/src/observation.ts, observation-capture.v0). The contract is not
+ * imported (apps/mobile is outside the workspaces); field names and enum values are copied
+ * and checked against it. Pure functions, tested without a device.
  */
+import { newId } from "./ids.ts";
 
 export type SamplingMethod = "VIO_DISTANCE" | "GPS_DISTANCE" | "MANUAL";
 
@@ -35,8 +36,12 @@ export interface CaptureInput {
 
 export type CaptureBuild = { ok: true; request: CaptureRequest } | { ok: false; reason: "NO_LOCATION_FIX" };
 
-/** RFC 9562 version-4 layout. Math.random is enough for a spike idempotency key; the real app should use a CSPRNG. */
-export function uuidV4(random: () => number = Math.random): string {
+/**
+ * RFC 9562 version-4 UUID. Without `random` it comes from the CSPRNG (src/ids.ts); tests may
+ * pass a deterministic `random` to get repeatable ids.
+ */
+export function uuidV4(random?: () => number): string {
+  if (!random) return newId();
   const hex = (n: number) => Array.from({ length: n }, () => Math.floor(random() * 16).toString(16)).join("");
   const variant = (8 + Math.floor(random() * 4)).toString(16);
   return `${hex(8)}-${hex(4)}-4${hex(3)}-${variant}${hex(3)}-${hex(12)}`;

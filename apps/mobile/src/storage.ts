@@ -1,14 +1,15 @@
 /**
  * Device storage for the session and capture records (expo-file-system). Everything stays
- * in the app's private document directory: never the gallery, never uploaded.
+ * in the app's private document directory, never the gallery. The uploader (src/upload.ts)
+ * sends a downscaled copy of each image; the full-resolution original stays here.
  *
- * - astig-state.json: session and settings (small; rewritten on change, write-then-replace).
- * - astig-queue.jsonl: capture records, one per line, append-only (src/journal.ts).
+ * - astig-state.json: session, settings and per-session upload info (small; write-then-replace).
+ * - astig-queue.jsonl: capture records and upload marks, one per line, append-only (src/journal.ts).
  * - captures/<clientObservationId>.jpg: the images.
  * Format and validation live in src/persist.ts and src/journal.ts.
  */
 import { Directory, File, Paths } from "expo-file-system";
-import { encodeEntries, encodeEntry, parseJournal, reconcileSequence } from "./journal";
+import { encodeEntries, encodeEntry, parseJournal, reconcileSequence, type UploadedMark } from "./journal";
 import { parse, serialize, type AppData, type PersistedState } from "./persist";
 import type { QueueEntry } from "./queue";
 
@@ -89,6 +90,11 @@ function appendText(text: string): void {
 /** Append one capture record. Throws if the phone refuses the write; the caller reports it. */
 export function appendEntry(entry: QueueEntry): void {
   appendText(encodeEntry(entry));
+}
+
+/** Append "this capture is stored on the server" (the capture's own line is never rewritten). */
+export function appendUploadMark(mark: UploadedMark): void {
+  appendText(encodeEntry(mark));
 }
 
 /** Write to a temporary file, then replace, so a crash mid-write cannot leave a half-written state file. */

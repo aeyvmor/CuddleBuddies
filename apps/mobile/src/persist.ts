@@ -22,6 +22,23 @@ export interface PersistedState {
   recentVehicleLabels: string[];
   /** Distance shown on the active screen when saved; carried forward after a restart. */
   lastDistanceM: number;
+  /**
+   * Sessions that may be uploaded, by clientSessionId (src/upload.ts). Only sessions started
+   * by a build with the uploader are listed; older local test captures are never uploaded.
+   * Absent in files written before the uploader existed.
+   */
+  uploadSessions: Record<string, UploadSessionInfo>;
+}
+
+export interface UploadSessionInfo {
+  startedAt: string;
+  /** First fix of the session; null until one arrives (the first capture's location is used then). */
+  startLocation: { latitude: number; longitude: number } | null;
+  endedAt: string | null;
+  /** Server session id once POST /sessions succeeded (the server uses the clientSessionId). */
+  serverId: string | null;
+  /** True once PATCH /sessions/{id} reported the end. */
+  endReported: boolean;
 }
 
 /** What the app holds in memory: the saved state plus the capture records read from the journal. */
@@ -37,13 +54,14 @@ export function emptyPersisted(now: Date): PersistedState {
     recentDeviceLabels: [],
     recentVehicleLabels: [],
     lastDistanceM: 0,
+    uploadSessions: {},
   };
 }
 
 /** The state file never contains capture records; those go to the journal. */
 export function serialize(data: PersistedState | AppData): string {
-  const { version, savedAt, session, recentDeviceLabels, recentVehicleLabels, lastDistanceM } = data;
-  return JSON.stringify({ version, savedAt, session, recentDeviceLabels, recentVehicleLabels, lastDistanceM });
+  const { version, savedAt, session, recentDeviceLabels, recentVehicleLabels, lastDistanceM, uploadSessions } = data;
+  return JSON.stringify({ version, savedAt, session, recentDeviceLabels, recentVehicleLabels, lastDistanceM, uploadSessions });
 }
 
 export type ParseResult =
@@ -89,6 +107,10 @@ export function parse(text: string): ParseResult {
   if (legacy && (!Array.isArray(raw.queue) || !raw.queue.every(checkEntry))) return { ok: false, error: "queue entries" };
   if (!isStrArray(raw.recentDeviceLabels) || !isStrArray(raw.recentVehicleLabels)) return { ok: false, error: "recent labels" };
   if (typeof raw.lastDistanceM !== "number" || !(raw.lastDistanceM >= 0)) return { ok: false, error: "lastDistanceM" };
+  const uploadSessions = raw.uploadSessions === undefined ? {} : raw.uploadSessions;
+  if (!isObj(uploadSessions) || !Object.values(uploadSessions).every((u) => isObj(u) && typeof u.startedAt === "string" && typeof u.endReported === "boolean")) {
+    return { ok: false, error: "uploadSessions" };
+  }
   const state: PersistedState = {
     version: PERSIST_VERSION,
     savedAt: raw.savedAt,
@@ -96,6 +118,7 @@ export function parse(text: string): ParseResult {
     recentDeviceLabels: raw.recentDeviceLabels,
     recentVehicleLabels: raw.recentVehicleLabels,
     lastDistanceM: raw.lastDistanceM,
+    uploadSessions: uploadSessions as Record<string, UploadSessionInfo>,
   };
   return { ok: true, state, legacyQueue: legacy ? (raw.queue as QueueEntry[]) : null };
 }

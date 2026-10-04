@@ -6,7 +6,9 @@
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "platforms": ["android"],
+    "platforms": [
+      "android"
+    ],
     "android": {
       "package": "dev.astig.spike",
       "adaptiveIcon": {
@@ -37,9 +39,14 @@
       [
         "@reactvision/react-viro",
         {
-          "android": { "xRMode": ["AR"] }
+          "android": {
+            "xRMode": [
+              "AR"
+            ]
+          }
         }
-      ]
+      ],
+      "expo-secure-store"
     ]
   }
 }
