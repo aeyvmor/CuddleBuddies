@@ -52,4 +52,4 @@ team dashcam video ─► trace route + anchors ─► plan (frame every 7 m) �
 - **Live replay of 3 frames:** 3 registered and uploaded, and the worker marked all 3 `FAILED: PROVIDER_NOT_CONFIGURED` (correct while the secret holds the placeholder).
 - **Re-run:** 0 new records, 3 already registered, 3 already uploaded.
 - **Database:** migration `0003` applied and 17 NCR areas loaded.
-- **Regions (07:40):** Gemini now returns `regions` (`[ymin, xmin, ymax, xmax]`, 0-1000), drawn as red boxes in the web app. After `reset-demo ALL` and a re-replay: Manila BLOCKED_DRAIN (5 observations, all with boxes) and 2 STANDING_WATER issues on Katipunan (Quezon City).
+- **Regions (~07:25):** Gemini now returns `regions` (`[ymin, xmin, ymax, xmax]`, 0-1000), drawn as red boxes in the web app. After `reset-demo ALL` and a re-replay: Manila BLOCKED_DRAIN (5 observations, all with boxes) and 2 STANDING_WATER issues on Katipunan (Quezon City).

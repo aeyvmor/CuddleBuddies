@@ -2,25 +2,26 @@
 
 > Update this page at the end of each meaningful work session. Durable requirements/design live in `.kiro/specs/astig/` and `docs/`.
 
-## Current state
+## Current state (2026-10-04 ~08:45, before the 9:00 demo)
 
-- Repository contains the initial ASTIG planning/scaffold documentation.
-- Team direction recorded: Android-only React Native; React + Vite + TypeScript web; TypeScript/Node API + worker.
-- Recommended defaults documented: Expo development build (verify native VIO support), npm workspaces, Zod shared schemas, SQL migrations + `pg`, Docker PostGIS locally, and AWS CDK in TypeScript.
-- User owns backend and AWS tasks, is new to AWS, and will work from an iPad; setup docs guide browser-based Console/CloudShell access without local AWS installation or long-lived keys.
-- Street View is deferred for the MVP to avoid per-request billing and terms/setup overhead; use team-captured, synthetic, or explicitly licensed images.
-- **Demo evidence (2026-10-04):** team-recorded Manila dashcam footage (no GPS → hand-traced routes) replayed through the real API by `tools/dashcam-replay` (`DASHCAM_REPLAY` sampling, demo device `isSynthetic`). Gemini live (`gemini-3.1-flash-lite`, key in Secrets Manager; **rotate it: it was pasted in chat**). Migration 0003 and 17 NCR city boundaries (OSM, ODbL) are loaded; new issues get a city name. Verified live with a synthetic test video. Runbook: `docs/operations/dashcam-demo-data.md`.
-- **QuickSight (2026-10-04):** Enterprise account `aeyvmorqs`, one user changed from ADMIN_PRO to **ADMIN** (avoids the $250/month Pro fee), S3 access granted to the analytics bucket only. Datasets `ASTIG issues` and `ASTIG sessions` (SPICE, typed columns, lat/lon tagged) were created through the API. Dashboard `ASTIG Operations` published.
-- Added pre-build setup checklist and four role-specific AI coding prompts.
-- **Backend slice (deployed):** npm workspaces root; `packages/contracts` (Zod v0 draft); `packages/domain` (risk score, work-order transitions, object keys, issue matching); `database` (migration 0001, synthetic seed, scripts, admin Lambda); `services/api` (issue detail, work orders, sessions, observation registration, upload URL, presigned evidence reads); `services/worker` (ingest/persist, provider adapter defaulting to `PROVIDER_NOT_CONFIGURED`, issue association, rescoring); `infra/aws` (evidence + app stacks).
-- Contract draft in `docs/api/contract-v0-proposal.md` is **pending team confirmation**. The web client imports `@astig/contracts`. `GET /issues` (web gaps G1–G5) and `GET /analytics/summary` are now live, so the web app can drop its local list types. G6 (the recommendation band) is still open.
-- **AWS (2026-10-04):** owner's account, `ap-southeast-1`. Root has MFA, the budget alert is **$40/month**, the Identity Center admin user is used instead of root, and the local CLI profile is `astig` (SSO). Deployed: `CDKToolkit`, `Astig-dev-Evidence` (private bucket), `Astig-dev-App` (isolated VPC with no NAT, private RDS PostgreSQL 17 `db.t4g.micro`, Cognito, HTTP API with JWT, 4 Lambdas, S3→ingest trigger). Running cost is about $1.05/day. The live smoke test passed (see `infra/aws/README.md`). API URL and Cognito IDs are in `infra/aws/README.md`. Teardown steps are in the same README.
-- Initial branch was clean at scaffold start.
+**Working end to end, live:** Android phone (Expo) or the dashcam replay captures → presigned S3 upload → Gemini (`gemini-3.1-flash-lite`, structured JSON + AI-estimated boxes) → PostGIS issue with NCR city name and `risk.v0` score → web dashboard (`https://astig-xi.vercel.app`, Cognito sign-in, OpenStreetMap map, red boxes) → officer work order with field reports and photos → analytics export → QuickSight dashboard `ASTIG Operations`.
 
-- **Integration kit (2026-10-04):** `packages/api-client` (typed fetch client + Cognito login/refresh), `docs/api/integration-guide.md` (web + mobile flows), demo accounts `demo-officer`/`demo-operator`/`demo-admin` (passwords in git-ignored `secrets/demo-accounts.local.md`), team phone/car registered (non-synthetic). Resolution evidence route live; `reset-demo` admin action (confirm `RESET_DEMO_DATA`); 8 alarms → SNS email (**confirm the subscription**). Lambda concurrency limit is 10 (needs a support case if throttled). The Vercel URL must be added to `webOrigins` when known.
+| Area | State |
+| --- | --- |
+| AWS (`ap-southeast-1`, owner's account, CLI profile `astig` via SSO) | `CDKToolkit`, `Astig-dev-Evidence` (private bucket), `Astig-dev-App`: isolated VPC with no NAT, private RDS PostgreSQL 17 `db.t4g.micro` (migrations 0001–0005), Cognito, HTTP API + JWT, 6 Lambdas, S3 triggers, analytics bucket + 15-min export, 8 alarms → SNS. About $1.05/day plus QuickSight $24/month. Budget alert $60. Details: `infra/aws/README.md` |
+| Backend | Sessions, observations, upload URL, issue list/detail, work orders, resolution evidence, analytics, admin Lambda (`migrate`, `seed`, `status`, `register-*`, `load-ncr-cities`, `reset-demo`). Contract: `docs/api/contract-v0-proposal.md` |
+| Web (`apps/web`) | Live by default (`VITE_ASTIG_API=mock` for offline). AuthGate sign-in, Leaflet + OSM map, AI region overlays, field-report dialog for start/complete work, after photos, analytics panel |
+| Mobile (`apps/mobile`, separate Expo project) | Connected: sign-in, secure tokens, session → observation → upload. First real captures processed (Taguig). VIO stays a no-go; captures are `MANUAL` / `GPS_DISTANCE` |
+| Demo data | Synthetic seed (3 issues, labelled placeholder images), TFH TV dashcam replay (Manila drain + 2 Katipunan standing-water issues; blurred; written permission), 2 live phone issues (Taguig). Runbook: `docs/operations/demo-runbook.md` |
+| Accounts | `demo-officer`, `demo-operator`, `demo-admin`; passwords only in git-ignored `secrets/demo-accounts.local.md` |
+| Checks at last push | Backend 144 unit / 94 database; web 69; mobile 88; all passing |
 
-- **Dashcam demo data loaded (2026-10-04 05:30):** TFH TV footage (friend's channel; written consent obtained; frames face/plate-blurred and team-checked). Binondo (Claveria→Poblete, 16 frames + 3 dense frames at 0:13–0:15) and C5/Katipunan (14 frames) were replayed via the API. Gemini marked 32 frames COMPLETED with no issue and created **1 BLOCKED_DRAIN issue in Manila** (2 observations, 40–75% blockage, score 13.75 of 55 known). Routes are hand-traced/simulated (±30 m Binondo, ±100 m C5). Raw unblurred frames are in git-ignored `tools/dashcam-replay/work/*/frames`: **delete after the event.**
-
+**Open items / after the event**
+- **Rotate the Gemini key** (it was pasted in chat), then delete it after the event.
+- Confirm the SNS alarm email subscription.
+- Delete the raw unblurred frames in `tools/dashcam-replay/work/*/frames/` and, if no longer needed, the source videos. Check the Taguig phone photos before public display.
+- Teardown (`infra/aws/README.md`): destroy `Astig-dev-App` and empty/delete both buckets, then `Astig-dev-Evidence` and `CDKToolkit`; cancel QuickSight; delete the demo Cognito users.
+- Known limits: Lambda concurrency limit 10 (support case if throttled); Lambdas use the RDS master user; recommendation band (gap G6) not implemented; risk weights are demonstration assumptions; Gemini output varies between runs.
 ## Team
 
 Four-person team. The user is primarily focused on backend/API and database work and will help across integration. Add teammate names/owners at kickoff.
@@ -54,3 +55,4 @@ See [architecture decisions](../docs/architecture/decisions.md) and the [pre-bui
 | 2026-10-03 (client) | Created npm workspace root (`package.json`, lists `apps/web` only; add other packages when they have a `package.json`). Built web slice against mock API + synthetic data; typecheck, 17 tests, and build pass. See `apps/web/README.md` for provisional contract fields. | Backend owner to confirm/replace provisional fields. Mobile not started: needs Android device + `adb` (not installed) and VIO/Expo decision. |
 | 2026-10-03 (backend) | Backend slice: contract v0 proposal, migration 0001 + synthetic seed, risk score, issue-detail/work-order API, CDK evidence bucket. Ran on Node 24.12.0: `npm run typecheck` OK; `npm test` 68/68; `npm run test:db` 45/45; migrate/seed/reset scripts; local HTTP smoke test; `cdk synth` with placeholder account. Vitest 5 does not support Node 25, so use Node 24 (`.nvmrc`). | Team confirms contract gaps; integration owner agrees upload-URL/worker interfaces (reuse `@astig/database`); account owner sets budget/roles; read-only `sts get-caller-identity` check before any deploy. Next API work: sessions, observation route, `GET /issues` list. |
 | 2026-10-03 (merge) | Merged client and backend work: root `package.json` workspaces now include `apps/web` plus backend packages; lockfile regenerated. Client contract proposal (`docs/api/client-contract-proposal.md`) and backend proposal (`docs/api/contract-v0-proposal.md`) both exist and must be reconciled into one contract. | Backend + client owners reconcile field names; web switches from provisional `apps/web/src/api/types.ts` to `@astig/contracts`. |
+| 2026-10-04 08:45 | End-to-end live: phone and dashcam capture → Gemini (boxes) → map → work order with field-report dialog and photos → QuickSight. Docs updated for the demo. | Demo at 9:00; afterwards, run the cleanup list above. |

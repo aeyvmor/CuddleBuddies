@@ -56,6 +56,14 @@ const summary = await api.analyticsSummary();
 
 **Optional "after" photo (requirement 12):** once a work order is `IN_PROGRESS` or `RESOLVED`, call `const ev = await api.createResolutionEvidence(woId, { clientEvidenceId: newId(), contentType: "image/jpeg", contentLengthBytes: file.size, note })`, then `await api.uploadImage(ev.upload!, file)`. It then appears in `getIssue(...).resolutionEvidence` (the field is optional, so older code keeps working). Limit: 5 per work order.
 
+**Field reports (web, 2026-10-04):** "Mark In progress" and "Mark Resolved" open a modal field report (`FieldReportDialog`):
+- crew on site, findings or work done, an on-site confirmation, and optional JPEG photos;
+- START sends `PATCH` with `{ status: "IN_PROGRESS", notes, assignedTeam }`, then uploads photos through `resolution-evidence`;
+- RESOLVE uploads photos first, then sends `PATCH { status: "RESOLVED", notes }`;
+- notes are appended with a UTC stamp and capped at 2000 characters, keeping the newest text.
+
+It needs no extra API: it uses the existing work-order and resolution-evidence routes.
+
 **UI rules from the contract:**
 - Show `isSynthetic` / `includesSynthetic` as a demo-data badge.
 - Show `UNKNOWN` score inputs as "unknown", never as 0. `knownCapTotal` is the maximum the score could reach from measured inputs.
@@ -65,6 +73,8 @@ const summary = await api.analyticsSummary();
 - AI fields are advisory. Creating a work order is the officer's decision.
 
 ## Mobile capture (OPERATOR)
+
+**Status (2026-10-04 08:15): connected.** `apps/mobile/src/api/` (copied client, secure token store, sign-in) uploads live captures; first real captures processed in Taguig.
 
 `apps/mobile` is outside the npm workspaces. Either copy `packages/api-client/src/*.ts` into the app, or call the endpoints directly with the same shapes. The capture records it already builds match `ObservationCaptureRequest` (checked: 600/600 valid).
 
