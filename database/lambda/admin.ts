@@ -1,5 +1,6 @@
 import ncrCities from "../seeds/ncr-cities.json";
 import { loadAreas, type AreaInput } from "../src/areas";
+import { purgeDeviceData } from "../src/purge";
 import { createPoolFromEnv } from "../src/pool";
 import { migrate } from "../scripts/migrate-lib";
 import { DEMO_RESET_CONFIRMATION, resetDemo, seed, type DemoResetScope } from "../scripts/seed-lib";
@@ -18,6 +19,8 @@ type AdminEvent =
   | { action: "register-device" | "register-vehicle"; label: string; isSynthetic?: boolean }
   | { action: "load-ncr-cities" }
   | { action: "reset-demo"; scope?: DemoResetScope; confirm: string }
+  | { action: "list-devices" }
+  | { action: "purge-device-data"; deviceId: string; confirm: string }
   | { action: "load-areas"; source: string; areas: AreaInput[] };
 
 const LABEL = /^[A-Za-z0-9 ()._-]{1,120}$/;
@@ -55,6 +58,27 @@ export async function handler(event: AdminEvent) {
           [event.label, isSynthetic],
         );
         return { id: rows[0].id, label: event.label, isSynthetic };
+      }
+      case "list-devices": {
+        const { rows } = await client.query(
+          `SELECT d.id, d.label, d.is_synthetic, count(DISTINCT s.id)::int AS sessions, count(o.id)::int AS observations
+             FROM devices d LEFT JOIN inspection_sessions s ON s.device_id = d.id LEFT JOIN observations o ON o.session_id = s.id
+            GROUP BY d.id ORDER BY d.label`,
+        );
+        return rows;
+      }
+      case "purge-device-data": {
+        if (event.confirm !== DEMO_RESET_CONFIRMATION) throw new Error(`purge-device-data requires "confirm": "${DEMO_RESET_CONFIRMATION}"`);
+        if (!/^[0-9a-f-]{36}$/.test(event.deviceId ?? "")) throw new Error("deviceId must be a UUID");
+        await client.query("BEGIN");
+        try {
+          const result = await purgeDeviceData(client, event.deviceId);
+          await client.query("COMMIT");
+          return { ...result, next: "invoke the analytics export, then refresh QuickSight" };
+        } catch (err) {
+          await client.query("ROLLBACK");
+          throw err;
+        }
       }
       case "reset-demo": {
         if (event.confirm !== DEMO_RESET_CONFIRMATION) throw new Error(`reset-demo requires "confirm": "${DEMO_RESET_CONFIRMATION}"`);

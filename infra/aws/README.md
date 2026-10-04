@@ -59,7 +59,7 @@ npx cdk diff  -c account=<id> -c region=ap-southeast-1      # preview
 npx cdk deploy --all -c account=<id> -c region=ap-southeast-1
 ```
 
-The database is private, so schema and data operations go through the admin Lambda (name in the stack output `AdminFunctionName`). Payloads: `{"action":"migrate"}`, `{"action":"seed"}`, `{"action":"status"}`, `{"action":"load-ncr-cities"}` (17 OSM city boundaries, ODbL), `{"action":"register-device","label":"Team phone 1"}` and `register-vehicle` (add `"isSynthetic":true` for demo/replay equipment). Labels are equipment names, never people's names. There's no reset action on purpose.
+The database is private, so schema and data operations go through the admin Lambda (name in the stack output `AdminFunctionName`). Payloads: `{"action":"migrate"}`, `{"action":"seed"}`, `{"action":"status"}`, `{"action":"load-ncr-cities"}`, `{"action":"list-devices"}`, `{"action":"purge-device-data","deviceId":"<uuid>","confirm":"RESET_DEMO_DATA"}` (deletes one device's sessions, captures, and the issues built only from them; refuses mixed issues) (17 OSM city boundaries, ODbL), `{"action":"register-device","label":"Team phone 1"}` and `register-vehicle` (add `"isSynthetic":true` for demo/replay equipment). Labels are equipment names, never people's names. There's no reset action on purpose.
 
 ```text
 aws lambda invoke --function-name <AdminFunctionName> --payload fileb://payload.json out.json
